@@ -85,3 +85,25 @@ export function saveData(colaboradores: Colaborador[], marcas: Marcas) {
   localStorage.setItem(KEY_C, JSON.stringify(colaboradores));
   localStorage.setItem(KEY_M, JSON.stringify(marcas));
 }
+
+export type Horas = Record<string, number>; // horas trabalhadas informadas manualmente
+export interface Jornada { semana: number; sabado: number }
+export const JORNADA_PADRAO: Jornada = { semana: 8, sabado: 4 };
+const KEY_H = "rjr-freq-horas";
+const KEY_J = "rjr-freq-jornada";
+export const loadHoras = (): Horas => JSON.parse(localStorage.getItem(KEY_H) ?? "{}");
+export const loadJornada = (): Jornada => ({ ...JORNADA_PADRAO, ...JSON.parse(localStorage.getItem(KEY_J) ?? "{}") });
+export const saveExtras = (h: Horas, j: Jornada) => {
+  localStorage.setItem(KEY_H, JSON.stringify(h));
+  localStorage.setItem(KEY_J, JSON.stringify(j));
+};
+export const jornadaDia = (d: Date, j: Jornada) => (d.getDay() === 6 ? j.sabado : d.getDay() === 0 ? 0 : j.semana);
+/** Horas trabalhadas no dia: P usa a jornada do dia salvo valor informado; J/F/vazio = 0 salvo valor informado. */
+export const horasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada) =>
+  h[k] ?? (m[k] === "P" ? jornadaDia(d, j) : 0);
+export const extrasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada) =>
+  m[k] === "P" || h[k] !== undefined ? Math.max(0, horasDia(k, d, m, h, j) - jornadaDia(d, j)) : 0;
+export const fmtH = (n: number) => {
+  const t = Math.round(n * 60);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+};

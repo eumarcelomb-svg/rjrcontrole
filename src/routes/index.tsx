@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, FileSpreadsheet, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, FileSpreadsheet, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
+import { extrasDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, saveExtras, type Horas, type Jornada } from "@/lib/frequencia";
 import { addDays, fmtCpf, iso, loadData, mondayOf, padCpf, saveData, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/")({
 });
 
 const NEXT: Record<string, Status | undefined> = { "": "P", P: "F", F: "J", J: undefined };
+const PREV: Record<string, Status | undefined> = { "": "J", P: undefined, F: "P", J: "F" };
 const CELL: Record<Status, string> = {
   P: "bg-present/20 text-present",
   F: "bg-absent/20 text-absent",
@@ -43,21 +45,30 @@ function Index() {
   const [funcao, setFuncao] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [edit, setEdit] = useState<Colaborador | null>(null);
+  const [horas, setHoras] = useState<Horas>({});
+  const [jornada, setJornada] = useState<Jornada>({ semana: 8, sabado: 4 });
+  const [horaEdit, setHoraEdit] = useState<{ k: string; d: Date; nome: string } | null>(null);
+  const [cfgOpen, setCfgOpen] = useState(false);
 
   useEffect(() => {
     const d = loadData();
     setCols(d.colaboradores);
     setMarcas(d.marcas);
+    setHoras(loadHoras());
+    setJornada(loadJornada());
     setLoaded(true);
   }, []);
   useEffect(() => {
     if (loaded) saveData(cols, marcas);
   }, [cols, marcas, loaded]);
+  useEffect(() => {
+    if (loaded) saveExtras(horas, jornada);
+  }, [horas, jornada, loaded]);
 
   const dias = useMemo(() => {
     if (modo === "semana") {
       const m = mondayOf(ref);
-      return [0, 1, 2, 3, 4].map((i) => addDays(m, i));
+      return [0, 1, 2, 3, 4, 5].map((i) => addDays(m, i));
     }
     const n = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
     return Array.from({ length: n }, (_, i) => new Date(ref.getFullYear(), ref.getMonth(), i + 1));
@@ -65,7 +76,7 @@ function Index() {
 
   const titulo =
     modo === "semana"
-      ? `Semana ${dias[0]!.toLocaleDateString("pt-BR")} a ${dias[4]!.toLocaleDateString("pt-BR")}`
+      ? `Semana ${dias[0]!.toLocaleDateString("pt-BR")} a ${dias[5]!.toLocaleDateString("pt-BR")}`
       : `${MESES[ref.getMonth()]} ${ref.getFullYear()}`;
 
   const funcoes = useMemo(() => [...new Set(cols.map((c) => c.funcao))].sort(), [cols]);
@@ -108,7 +119,11 @@ function Index() {
 
   const total = (id: string, s: Status) => dias.filter((d) => marcas[`${id}|${iso(d)}`] === s).length;
   const totalDia = (dia: string, s: Status) => lista.filter((c) => marcas[`${c.id}|${dia}`] === s).length;
-  const report = () => ({ titulo, dias, colaboradores: lista, marcas });
+  const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada });
+  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada), 0);
+  const somaE = (id: string) => dias.reduce((a, d) => a + extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada), 0);
+  const totH = lista.reduce((a, c) => a + somaH(c.id), 0);
+  const totE = lista.reduce((a, c) => a + somaE(c.id), 0);
   const hoje = iso(new Date());
   const mensal = modo === "mes";
 
@@ -126,6 +141,9 @@ function Index() {
             <h1 className="text-lg font-bold leading-tight">Lista de Presença — Colaboradores</h1>
             <p className="text-xs text-muted-foreground">RJR Construção Naval · dados salvos neste navegador</p>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}>
+            <Clock /> Jornada
+          </Button>
           <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}>
             <FileSpreadsheet /> Excel
           </Button>
@@ -170,7 +188,7 @@ function Index() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Clique no dia para marcar presença em todos.
+          Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa as horas trabalhadas no dia (o que passar da jornada vira hora extra). Clique no dia para marcar presença em todos.
         </p>
 
         <div className="overflow-auto rounded-md border bg-card">
@@ -182,7 +200,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-left">Função</th>
                 {dias.map((d) => {
                   const k = iso(d);
-                  const fds = d.getDay() === 0 || d.getDay() === 6;
+                  const fds = d.getDay() === 0;
                   return (
                     <th
                       key={k}
@@ -198,6 +216,8 @@ function Index() {
                 <th className="border-b border-r px-2 text-present">P</th>
                 <th className="border-b border-r px-2 text-absent">F</th>
                 <th className="border-b border-r px-2 text-justified">J</th>
+                <th className="border-b border-r px-2">Horas</th>
+                <th className="border-b border-r px-2 text-primary">H. Extras</th>
                 <th className="border-b px-2"></th>
               </tr>
             </thead>
@@ -217,11 +237,15 @@ function Index() {
                       <td key={k} className="border-b border-r p-0">
                         <button
                           disabled={!c.ativo}
-                          onClick={() => setMarca(c.id, k, NEXT[v ?? ""])}
+                          onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
+                          onDoubleClick={() => (setMarca(c.id, k, PREV[v ?? ""]), setHoraEdit({ k: `${c.id}|${k}`, d, nome: c.nome }))}
                           onContextMenu={(e) => { e.preventDefault(); setMarca(c.id, k, undefined); }}
                           className={`h-8 w-full font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
-                          {v ?? ""}
+                          <div className="leading-none">{v ?? ""}</div>
+                          {horas[`${c.id}|${k}`] !== undefined && (
+                            <div className="text-[10px] font-normal leading-none text-foreground/70">{fmtH(horas[`${c.id}|${k}`]!)}</div>
+                          )}
                         </button>
                       </td>
                     );
@@ -229,6 +253,8 @@ function Index() {
                   <td className="border-b border-r px-2 text-center font-mono text-present">{total(c.id, "P")}</td>
                   <td className="border-b border-r px-2 text-center font-mono text-absent">{total(c.id, "F")}</td>
                   <td className="border-b border-r px-2 text-center font-mono text-justified">{total(c.id, "J")}</td>
+                  <td className="border-b border-r px-2 text-center font-mono">{fmtH(somaH(c.id))}</td>
+                  <td className="border-b border-r px-2 text-center font-mono font-semibold text-primary">{fmtH(somaE(c.id))}</td>
                   <td className="whitespace-nowrap border-b px-1">
                     <Button variant="ghost" size="icon" className="size-7" onClick={() => setEdit(c)} aria-label="Editar"><Pencil /></Button>
                     <Button
@@ -242,7 +268,7 @@ function Index() {
                 </tr>
               ))}
               {lista.length === 0 && (
-                <tr><td colSpan={dias.length + 8} className="p-6 text-center text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
+                <tr><td colSpan={dias.length + 10} className="p-6 text-center text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
               )}
             </tbody>
             <tfoot className="bg-muted text-xs">
@@ -255,7 +281,10 @@ function Index() {
                   {dias.map((d) => (
                     <td key={iso(d)} className="border-r text-center font-mono">{totalDia(iso(d), s) || ""}</td>
                   ))}
-                  <td colSpan={4}></td>
+                  <td colSpan={3}></td>
+                  <td className="border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
+                  <td className="border-r text-center font-mono font-semibold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
+                  <td></td>
                 </tr>
               ))}
             </tfoot>
@@ -264,6 +293,20 @@ function Index() {
         <p className="text-xs text-muted-foreground">{lista.length} colaborador(es) exibido(s) · {cols.filter((c) => c.ativo).length} ativo(s)</p>
       </main>
 
+      <HorasDialog
+        alvo={horaEdit}
+        valor={horaEdit ? horas[horaEdit.k] : undefined}
+        jornada={horaEdit ? jornadaDia(horaEdit.d, jornada) : 0}
+        onClose={() => setHoraEdit(null)}
+        onSave={(n) => {
+          if (!horaEdit) return;
+          const k = horaEdit.k;
+          setHoras((h) => { const x = { ...h }; if (n === undefined) delete x[k]; else x[k] = n; return x; });
+          if (n !== undefined && n > 0 && !marcas[k]) setMarcas((m) => ({ ...m, [k]: "P" }));
+          setHoraEdit(null);
+        }}
+      />
+      <JornadaDialog open={cfgOpen} jornada={jornada} onClose={() => setCfgOpen(false)} onSave={(j) => { setJornada(j); setCfgOpen(false); }} />
       <ColabDialog colab={edit} funcoes={funcoes} onClose={() => setEdit(null)} onSave={salvar} />
     </div>
   );
@@ -289,6 +332,63 @@ function ColabDialog({ colab, funcoes, onClose, onSave }: { colab: Colaborador |
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button disabled={!valido} onClick={() => onSave({ ...f, nome: f.nome.trim(), funcao: f.funcao.trim(), cpf: padCpf(f.cpf) })}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const parseH = (t: string): number | undefined => {
+  const v = t.trim();
+  if (!v) return undefined;
+  if (v.includes(":")) {
+    const [h, m] = v.split(":");
+    return Number(h) + Number(m || 0) / 60;
+  }
+  const n = Number(v.replace(",", "."));
+  return Number.isFinite(n) ? n : undefined;
+};
+
+function HorasDialog({ alvo, valor, jornada, onClose, onSave }: { alvo: { k: string; d: Date; nome: string } | null; valor: number | undefined; jornada: number; onClose: () => void; onSave: (n: number | undefined) => void }) {
+  const [t, setT] = useState("");
+  useEffect(() => setT(valor !== undefined ? fmtH(valor) : ""), [alvo, valor]);
+  const n = parseH(t);
+  return (
+    <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Horas trabalhadas</DialogTitle></DialogHeader>
+        {alvo && (
+          <p className="text-sm text-muted-foreground">
+            {alvo.nome} · {alvo.d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })} · jornada {fmtH(jornada)}
+          </p>
+        )}
+        <label className="block text-sm">Horas (ex.: 10:30 ou 10,5)
+          <Input autoFocus value={t} onChange={(e) => setT(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSave(n)} />
+        </label>
+        {n !== undefined && <p className="text-sm">Hora extra no dia: <b className="text-primary">{fmtH(Math.max(0, n - jornada))}</b></p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onSave(undefined)}>Usar jornada padrão</Button>
+          <Button onClick={() => onSave(n)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function JornadaDialog({ open, jornada, onClose, onSave }: { open: boolean; jornada: Jornada; onClose: () => void; onSave: (j: Jornada) => void }) {
+  const [a, setA] = useState("");
+  const [b, setB] = useState("");
+  useEffect(() => { setA(fmtH(jornada.semana)); setB(fmtH(jornada.sabado)); }, [open, jornada]);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Jornada diária</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Presença (P) conta essas horas. O que for informado acima disso vira hora extra.</p>
+        <label className="block text-sm">Segunda a sexta<Input value={a} onChange={(e) => setA(e.target.value)} /></label>
+        <label className="block text-sm">Sábado<Input value={b} onChange={(e) => setB(e.target.value)} /></label>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave({ semana: parseH(a) ?? 8, sabado: parseH(b) ?? 4 })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
