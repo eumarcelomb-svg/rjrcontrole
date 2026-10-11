@@ -26,6 +26,7 @@ export const Route = createFileRoute("/")({
 });
 
 const NEXT: Record<string, Status | undefined> = { "": "P", P: "F", F: "J", J: undefined };
+const PREV: Record<string, Status | undefined> = { "": "J", P: undefined, F: "P", J: "F" };
 const CELL: Record<Status, string> = {
   P: "bg-present/20 text-present",
   F: "bg-absent/20 text-absent",
@@ -199,7 +200,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-left">Função</th>
                 {dias.map((d) => {
                   const k = iso(d);
-                  const fds = d.getDay() === 0 || d.getDay() === 6;
+                  const fds = d.getDay() === 0;
                   return (
                     <th
                       key={k}
@@ -236,8 +237,8 @@ function Index() {
                       <td key={k} className="border-b border-r p-0">
                         <button
                           disabled={!c.ativo}
-                          onClick={() => setMarca(c.id, k, NEXT[v ?? ""])}
-                          onDoubleClick={() => setHoraEdit({ k: `${c.id}|${k}`, d, nome: c.nome })}
+                          onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
+                          onDoubleClick={() => (setMarca(c.id, k, PREV[v ?? ""]), setHoraEdit({ k: `${c.id}|${k}`, d, nome: c.nome }))}
                           onContextMenu={(e) => { e.preventDefault(); setMarca(c.id, k, undefined); }}
                           className={`h-8 w-full font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
