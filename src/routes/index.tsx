@@ -65,7 +65,7 @@ function Index() {
 
   const titulo =
     modo === "semana"
-      ? `Semana ${dias[0].toLocaleDateString("pt-BR")} a ${dias[4].toLocaleDateString("pt-BR")}`
+      ? `Semana ${dias[0]!.toLocaleDateString("pt-BR")} a ${dias[4]!.toLocaleDateString("pt-BR")}`
       : `${MESES[ref.getMonth()]} ${ref.getFullYear()}`;
 
   const funcoes = useMemo(() => [...new Set(cols.map((c) => c.funcao))].sort(), [cols]);
