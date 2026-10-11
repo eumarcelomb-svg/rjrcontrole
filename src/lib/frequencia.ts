@@ -73,7 +73,7 @@ export function loadData(): { colaboradores: Colaboradores; marcas: Marcas } {
   const marcas: Marcas = {};
   const mon = mondayOf(new Date());
   colaboradores.forEach((col, i) => {
-    SEED_MARKS[i].split("").forEach((ch, d) => {
+    (SEED_MARKS[i] ?? "").split("").forEach((ch, d) => {
       if (ch === "P" || ch === "F") marcas[`${col.id}|${iso(addDays(mon, d))}`] = ch;
     });
   });
