@@ -348,7 +348,7 @@ const parseH = (t: string): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-function HorasDialog({ alvo, valor, jornada, onClose, onSave }: { alvo: { k: string; d: Date; nome: string } | null; valor?: number; jornada: number; onClose: () => void; onSave: (n: number | undefined) => void }) {
+function HorasDialog({ alvo, valor, jornada, onClose, onSave }: { alvo: { k: string; d: Date; nome: string } | null; valor: number | undefined; jornada: number; onClose: () => void; onSave: (n: number | undefined) => void }) {
   const [t, setT] = useState("");
   useEffect(() => setT(valor !== undefined ? fmtH(valor) : ""), [alvo, valor]);
   const n = parseH(t);
