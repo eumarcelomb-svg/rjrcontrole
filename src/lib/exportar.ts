@@ -1,4 +1,4 @@
-import { extrasDia, fmtCpf, fmtH, horasDia, iso, type Colaborador, type Horas, type Jornada, type Marcas } from "./frequencia";
+import { extrasDia, fmtCpf, fmtH, horasDia, iso, type Colaborador, type Horas, type Jornada, type Marcas, type Pontos } from "./frequencia";
 
 export interface ReportInput {
   titulo: string;
@@ -7,20 +7,26 @@ export interface ReportInput {
   marcas: Marcas;
   horas: Horas;
   jornada: Jornada;
+  pontos: Pontos;
 }
 
 const dayLabel = (d: Date) =>
   `${["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()]} ${String(d.getDate()).padStart(2, "0")}`;
 
-function rows({ dias, colaboradores, marcas, horas, jornada }: ReportInput) {
+function rows({ dias, colaboradores, marcas, horas, jornada, pontos }: ReportInput) {
   return colaboradores.map((c) => {
     const vals = dias.map((d) => {
       const k = `${c.id}|${iso(d)}`;
       const v = marcas[k] ?? "";
+      const p = pontos[k];
+      if (p && (p.e !== undefined || p.s !== undefined)) {
+        const hm = (n?: number) => (n === undefined ? "--" : fmtH(n / 60));
+        return `${v} ${hm(p.e)}-${hm(p.s)}`.trim();
+      }
       return horas[k] !== undefined ? `${v} ${fmtH(horas[k]!)}`.trim() : v;
     });
-    const ht = dias.reduce((a, d) => a + horasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada), 0);
-    const he = dias.reduce((a, d) => a + extrasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada), 0);
+    const ht = dias.reduce((a, d) => a + horasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
+    const he = dias.reduce((a, d) => a + extrasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
     const t = (s: string) => vals.filter((v) => v.startsWith(s)).length;
     return [c.nome, fmtCpf(c.cpf), c.funcao, ...vals, t("P"), t("F"), t("J"), fmtH(ht), fmtH(he)];
   });

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, FileSpreadsheet, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
-import { extrasDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, saveExtras, type Horas, type Jornada } from "@/lib/frequencia";
+import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, loadPontos, saveExtras, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
 import { addDays, fmtCpf, iso, loadData, mondayOf, padCpf, saveData, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 
@@ -46,7 +46,9 @@ function Index() {
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [edit, setEdit] = useState<Colaborador | null>(null);
   const [horas, setHoras] = useState<Horas>({});
-  const [jornada, setJornada] = useState<Jornada>({ semana: 8, sabado: 4 });
+  const [jornada, setJornada] = useState<Jornada>({ feriados: [] });
+  const [pontos, setPontos] = useState<Pontos>({});
+  const [pontoOpen, setPontoOpen] = useState(false);
   const [horaEdit, setHoraEdit] = useState<{ k: string; d: Date; nome: string } | null>(null);
   const [cfgOpen, setCfgOpen] = useState(false);
 
@@ -56,14 +58,15 @@ function Index() {
     setMarcas(d.marcas);
     setHoras(loadHoras());
     setJornada(loadJornada());
+    setPontos(loadPontos());
     setLoaded(true);
   }, []);
   useEffect(() => {
     if (loaded) saveData(cols, marcas);
   }, [cols, marcas, loaded]);
   useEffect(() => {
-    if (loaded) saveExtras(horas, jornada);
-  }, [horas, jornada, loaded]);
+    if (loaded) saveExtras(horas, jornada, pontos);
+  }, [horas, jornada, pontos, loaded]);
 
   const dias = useMemo(() => {
     if (modo === "semana") {
@@ -119,9 +122,9 @@ function Index() {
 
   const total = (id: string, s: Status) => dias.filter((d) => marcas[`${id}|${iso(d)}`] === s).length;
   const totalDia = (dia: string, s: Status) => lista.filter((c) => marcas[`${c.id}|${dia}`] === s).length;
-  const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada });
-  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada), 0);
-  const somaE = (id: string) => dias.reduce((a, d) => a + extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada), 0);
+  const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada, pontos });
+  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
+  const somaE = (id: string) => dias.reduce((a, d) => a + extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
   const totH = lista.reduce((a, c) => a + somaH(c.id), 0);
   const totE = lista.reduce((a, c) => a + somaE(c.id), 0);
   const hoje = iso(new Date());
@@ -142,7 +145,10 @@ function Index() {
             <p className="text-xs text-muted-foreground">RJR Construção Naval · dados salvos neste navegador</p>
           </div>
           <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}>
-            <Clock /> Jornada
+            <CalendarX /> Feriados
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => setPontoOpen(true)}>
+            <Clock /> Check-in / Check-out
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}>
             <FileSpreadsheet /> Excel
@@ -188,7 +194,7 @@ function Index() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa as horas trabalhadas no dia (o que passar da jornada vira hora extra). Clique no dia para marcar presença em todos.
+          Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
         </p>
 
         <div className="overflow-auto rounded-md border bg-card">
@@ -200,7 +206,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-left">Função</th>
                 {dias.map((d) => {
                   const k = iso(d);
-                  const fds = d.getDay() === 0;
+                  const fds = d.getDay() === 0 || ehFeriado(d, jornada);
                   return (
                     <th
                       key={k}
@@ -210,6 +216,7 @@ function Index() {
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
+                      {ehFeriado(d, jornada) && <div className="text-[9px] text-primary">Feriado</div>}
                     </th>
                   );
                 })}
@@ -243,7 +250,11 @@ function Index() {
                           className={`h-8 w-full font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
                           <div className="leading-none">{v ?? ""}</div>
-                          {horas[`${c.id}|${k}`] !== undefined && (
+                          {pontos[`${c.id}|${k}`] && !mensal ? (
+                            <div className="text-[10px] font-normal leading-none text-foreground/70">
+                              {hm(pontos[`${c.id}|${k}`]!.e)}–{hm(pontos[`${c.id}|${k}`]!.s)}
+                            </div>
+                          ) : horas[`${c.id}|${k}`] !== undefined && (
                             <div className="text-[10px] font-normal leading-none text-foreground/70">{fmtH(horas[`${c.id}|${k}`]!)}</div>
                           )}
                         </button>
@@ -296,17 +307,34 @@ function Index() {
       <HorasDialog
         alvo={horaEdit}
         valor={horaEdit ? horas[horaEdit.k] : undefined}
-        jornada={horaEdit ? jornadaDia(horaEdit.d, jornada) : 0}
+        ponto={horaEdit ? pontos[horaEdit.k] : undefined}
+        cfg={jornada}
         onClose={() => setHoraEdit(null)}
-        onSave={(n) => {
+        onSave={(n, pt) => {
           if (!horaEdit) return;
           const k = horaEdit.k;
+          setPontos((ps) => { const x = { ...ps }; if (pt) x[k] = pt; else delete x[k]; return x; });
+          if (pt && !marcas[k]) setMarcas((m) => ({ ...m, [k]: "P" }));
           setHoras((h) => { const x = { ...h }; if (n === undefined) delete x[k]; else x[k] = n; return x; });
           if (n !== undefined && n > 0 && !marcas[k]) setMarcas((m) => ({ ...m, [k]: "P" }));
           setHoraEdit(null);
         }}
       />
-      <JornadaDialog open={cfgOpen} jornada={jornada} onClose={() => setCfgOpen(false)} onSave={(j) => { setJornada(j); setCfgOpen(false); }} />
+      <FeriadosDialog open={cfgOpen} jornada={jornada} onClose={() => setCfgOpen(false)} onSave={(j) => { setJornada(j); setCfgOpen(false); }} />
+      <PontoDialog
+        open={pontoOpen}
+        colaboradores={cols.filter((c) => c.ativo)}
+        pontos={pontos}
+        cfg={jornada}
+        onClose={() => setPontoOpen(false)}
+        onMarcar={(id, tipo) => {
+          const now = new Date();
+          const k = `${id}|${iso(now)}`;
+          const min = now.getHours() * 60 + now.getMinutes();
+          setPontos((ps) => ({ ...ps, [k]: { ...ps[k], [tipo]: min } }));
+          setMarcas((m) => ({ ...m, [k]: "P" }));
+        }}
+      />
       <ColabDialog colab={edit} funcoes={funcoes} onClose={() => setEdit(null)} onSave={salvar} />
     </div>
   );
@@ -349,46 +377,120 @@ const parseH = (t: string): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-function HorasDialog({ alvo, valor, jornada, onClose, onSave }: { alvo: { k: string; d: Date; nome: string } | null; valor: number | undefined; jornada: number; onClose: () => void; onSave: (n: number | undefined) => void }) {
+const hm = (n?: number) => (n === undefined ? "--:--" : fmtH(n / 60));
+const parseMin = (t: string) => { const h = parseH(t); return h === undefined ? undefined : Math.round(h * 60); };
+
+function HorasDialog({ alvo, valor, ponto, cfg, onClose, onSave }: { alvo: { k: string; d: Date; nome: string } | null; valor: number | undefined; ponto: Ponto | undefined; cfg: Jornada; onClose: () => void; onSave: (n: number | undefined, p: Ponto | undefined) => void }) {
   const [t, setT] = useState("");
-  useEffect(() => setT(valor !== undefined ? fmtH(valor) : ""), [alvo, valor]);
+  const [e, setE] = useState("");
+  const [s, setS] = useState("");
+  useEffect(() => {
+    setT(valor !== undefined ? fmtH(valor) : "");
+    setE(ponto?.e !== undefined ? hm(ponto.e) : "");
+    setS(ponto?.s !== undefined ? hm(ponto.s) : "");
+  }, [alvo, valor, ponto]);
   const n = parseH(t);
+  const pt: Ponto | undefined = e || s ? { e: parseMin(e), s: parseMin(s) } : undefined;
+  const fim = alvo ? fimDia(alvo.d, cfg) : null;
+  const calc = alvo ? calcPonto(pt, alvo.d, cfg) : null;
+  const jornada = alvo ? jornadaDia(alvo.d, cfg) : 0;
+  const salvar = () => onSave(pt ? undefined : n, pt);
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Horas trabalhadas</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Entrada, saída e horas</DialogTitle></DialogHeader>
         {alvo && (
           <p className="text-sm text-muted-foreground">
-            {alvo.nome} · {alvo.d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })} · jornada {fmtH(jornada)}
+            {alvo.nome} · {alvo.d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })} ·{" "}
+            {fim === null ? "todas as horas contam como extra" : `expediente 07:00–${hm(fim)}`}
           </p>
         )}
-        <label className="block text-sm">Horas (ex.: 10:30 ou 10,5)
-          <Input autoFocus value={t} onChange={(e) => setT(e.target.value)} onKeyDown={(e) => e.key === "Enter" && onSave(n)} />
-        </label>
-        {n !== undefined && <p className="text-sm">Hora extra no dia: <b className="text-primary">{fmtH(Math.max(0, n - jornada))}</b></p>}
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm">Entrada (check-in)<Input placeholder="07:00" value={e} onChange={(x) => setE(x.target.value)} /></label>
+          <label className="block text-sm">Saída (check-out)<Input placeholder={fim ? hm(fim) : "17:00"} value={s} onChange={(x) => setS(x.target.value)} /></label>
+        </div>
+        {calc && <p className="text-sm">Horas: <b>{fmtH(calc.h)}</b> · Hora extra: <b className="text-primary">{fmtH(calc.e)}</b></p>}
+        {!pt && (
+          <>
+            <label className="block text-sm">Ou informe só o total de horas (ex.: 10:30 ou 10,5)
+              <Input value={t} onChange={(x) => setT(x.target.value)} onKeyDown={(x) => x.key === "Enter" && salvar()} />
+            </label>
+            {n !== undefined && <p className="text-sm">Hora extra no dia: <b className="text-primary">{fmtH(Math.max(0, n - jornada))}</b></p>}
+          </>
+        )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onSave(undefined)}>Usar jornada padrão</Button>
-          <Button onClick={() => onSave(n)}>Salvar</Button>
+          <Button variant="outline" onClick={() => onSave(undefined, undefined)}>Limpar horários</Button>
+          <Button onClick={salvar}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function JornadaDialog({ open, jornada, onClose, onSave }: { open: boolean; jornada: Jornada; onClose: () => void; onSave: (j: Jornada) => void }) {
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
-  useEffect(() => { setA(fmtH(jornada.semana)); setB(fmtH(jornada.sabado)); }, [open, jornada]);
+function PontoDialog({ open, colaboradores, pontos, cfg, onClose, onMarcar }: { open: boolean; colaboradores: Colaborador[]; pontos: Pontos; cfg: Jornada; onClose: () => void; onMarcar: (id: string, t: "e" | "s") => void }) {
+  const [q, setQ] = useState("");
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => { if (!open) return; const t = setInterval(() => setAgora(new Date()), 15000); return () => clearInterval(t); }, [open]);
+  const dia = iso(agora);
+  const fim = fimDia(agora, cfg);
+  const ql = q.trim().toLowerCase();
+  const lista = colaboradores.filter((c) => !ql || c.nome.toLowerCase().includes(ql) || c.cpf.includes(ql.replace(/\D/g, "") || "x"));
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Check-in / Check-out — {agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })} {hm(agora.getHours() * 60 + agora.getMinutes())}</DialogTitle></DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          {fim === null ? "Sábado, domingo ou feriado: todas as horas contam como extra." : `Expediente 07:00–${hm(fim)}. Entrada a partir de 06:45 e saída a partir de ${hm(fim - 15)} contam como horário normal, sem extra.`}
+        </p>
+        <Input placeholder="Buscar nome ou CPF" value={q} onChange={(x) => setQ(x.target.value)} />
+        <div className="max-h-[55vh] divide-y overflow-auto rounded-md border">
+          {lista.map((c) => {
+            const p = pontos[`${c.id}|${dia}`];
+            const r = calcPonto(p, agora, cfg);
+            return (
+              <div key={c.id} className="flex items-center gap-2 px-2 py-1.5 text-sm">
+                <div className="mr-auto">
+                  <div className="font-medium">{c.nome}</div>
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {hm(p?.e)} → {hm(p?.s)}{r ? ` · ${fmtH(r.h)}h${r.e ? ` (+${fmtH(r.e)} extra)` : ""}` : ""}
+                  </div>
+                </div>
+                <Button size="sm" variant={p?.e !== undefined ? "outline" : "default"} onClick={() => onMarcar(c.id, "e")}><LogIn /> Entrada</Button>
+                <Button size="sm" variant="outline" disabled={p?.e === undefined} onClick={() => onMarcar(c.id, "s")}><LogOut /> Saída</Button>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FeriadosDialog({ open, jornada, onClose, onSave }: { open: boolean; jornada: Jornada; onClose: () => void; onSave: (j: Jornada) => void }) {
+  const [lista, setLista] = useState<string[]>([]);
+  const [d, setD] = useState("");
+  useEffect(() => setLista([...jornada.feriados].sort()), [open, jornada]);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Jornada diária</DialogTitle></DialogHeader>
-        <p className="text-sm text-muted-foreground">Presença (P) conta essas horas. O que for informado acima disso vira hora extra.</p>
-        <label className="block text-sm">Segunda a sexta<Input value={a} onChange={(e) => setA(e.target.value)} /></label>
-        <label className="block text-sm">Sábado<Input value={b} onChange={(e) => setB(e.target.value)} /></label>
+        <DialogHeader><DialogTitle>Feriados</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Em feriados, sábados e domingos todas as horas trabalhadas contam como hora extra.</p>
+        <div className="flex gap-2">
+          <Input type="date" value={d} onChange={(e) => setD(e.target.value)} />
+          <Button variant="outline" disabled={!d} onClick={() => { if (!lista.includes(d)) setLista([...lista, d].sort()); setD(""); }}><Plus /> Adicionar</Button>
+        </div>
+        <ul className="max-h-60 divide-y overflow-auto rounded-md border text-sm">
+          {lista.length === 0 && <li className="p-3 text-muted-foreground">Nenhum feriado cadastrado.</li>}
+          {lista.map((f) => (
+            <li key={f} className="flex items-center justify-between px-3 py-1">
+              {new Date(`${f}T12:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}
+              <Button variant="ghost" size="sm" onClick={() => setLista(lista.filter((x) => x !== f))}>Remover</Button>
+            </li>
+          ))}
+        </ul>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave({ semana: parseH(a) ?? 8, sabado: parseH(b) ?? 4 })}>Salvar</Button>
+          <Button onClick={() => onSave({ ...jornada, feriados: lista })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
