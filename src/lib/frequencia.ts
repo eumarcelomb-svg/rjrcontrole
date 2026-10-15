@@ -120,7 +120,7 @@ export const jornadaDia = (d: Date, j: Jornada) => { const f = fimDia(d, j); ret
 export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: number; e: number } | null => {
   if (!p || p.e === undefined || p.s === undefined || p.s <= p.e) return null;
   const fim = fimDia(d, j);
-  if (fim === null) { const h = (p.s - p.e) / 60; return { h, e: h }; }
+  if (fim === null) { const h = Math.max(0, p.s - p.e - ALMOCO) / 60; return { h, e: h }; }
   const e = p.e >= INICIO - TOLERANCIA && p.e <= INICIO ? INICIO : p.e;
   const s = p.s >= fim - TOLERANCIA && p.s <= fim ? fim : p.s;
   const extra = Math.max(0, Math.min(INICIO, s) - e) + Math.max(0, s - Math.max(fim, e));
