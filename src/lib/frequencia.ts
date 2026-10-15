@@ -89,7 +89,7 @@ export function saveData(colaboradores: Colaborador[], marcas: Marcas) {
 export type Horas = Record<string, number>; // horas trabalhadas informadas manualmente
 export interface Jornada { feriados: string[] }
 export const JORNADA_PADRAO: Jornada = { feriados: [] };
-export interface Ponto { e?: number; s?: number } // minutos desde 00:00
+export interface Ponto { e?: number | undefined; s?: number | undefined } // minutos desde 00:00
 export type Pontos = Record<string, Ponto>;
 const KEY_H = "rjr-freq-horas";
 const KEY_J = "rjr-freq-jornada";
