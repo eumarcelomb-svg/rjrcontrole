@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
-import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, loadPontos, saveExtras, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
+import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, loadPontos, saveExtras, loadSalarios, saveSalarios, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
 import { addDays, fmtCpf, iso, loadData, mondayOf, padCpf, saveData, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 
@@ -51,6 +51,9 @@ function Index() {
   const [pontoOpen, setPontoOpen] = useState(false);
   const [horaEdit, setHoraEdit] = useState<{ k: string; d: Date; nome: string } | null>(null);
   const [cfgOpen, setCfgOpen] = useState(false);
+  const [salarios, setSalarios] = useState<Salarios>(SALARIOS_PADRAO);
+  const [salOpen, setSalOpen] = useState(false);
+  const [ficha, setFicha] = useState<Colaborador | null>(null);
 
   useEffect(() => {
     const d = loadData();
@@ -59,11 +62,13 @@ function Index() {
     setHoras(loadHoras());
     setJornada(loadJornada());
     setPontos(loadPontos());
+    setSalarios(loadSalarios());
     setLoaded(true);
   }, []);
   useEffect(() => {
     if (loaded) saveData(cols, marcas);
   }, [cols, marcas, loaded]);
+  useEffect(() => { if (loaded) saveSalarios(salarios); }, [salarios, loaded]);
   useEffect(() => {
     if (loaded) saveExtras(horas, jornada, pontos);
   }, [horas, jornada, pontos, loaded]);
@@ -123,7 +128,7 @@ function Index() {
   const total = (id: string, s: Status) => dias.filter((d) => marcas[`${id}|${iso(d)}`] === s).length;
   const totalDia = (dia: string, s: Status) => lista.filter((c) => marcas[`${c.id}|${dia}`] === s).length;
   const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada, pontos });
-  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
+  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos) - Math.min(horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos)), 0);
   const somaE = (id: string) => dias.reduce((a, d) => a + extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
   const totH = lista.reduce((a, c) => a + somaH(c.id), 0);
   const totE = lista.reduce((a, c) => a + somaE(c.id), 0);
@@ -146,6 +151,9 @@ function Index() {
           </div>
           <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}>
             <CalendarX /> Feriados
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}>
+            <DollarSign /> Salários
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setPontoOpen(true)}>
             <Clock /> Check-in / Check-out
@@ -223,7 +231,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-present">P</th>
                 <th className="border-b border-r px-2 text-absent">F</th>
                 <th className="border-b border-r px-2 text-justified">J</th>
-                <th className="border-b border-r px-2">Horas</th>
+                <th className="border-b border-r px-2">H. Normais</th>
                 <th className="border-b border-r px-2 text-primary">H. Extras</th>
                 <th className="border-b px-2"></th>
               </tr>
@@ -232,7 +240,7 @@ function Index() {
               {lista.map((c) => (
                 <tr key={c.id} className={`hover:bg-accent/40 ${c.ativo ? "" : "opacity-50"}`}>
                   <td className="sticky left-0 border-b border-r bg-card px-2 py-1 font-medium">
-                    {c.nome}
+                    <button className="text-left hover:text-primary hover:underline" onClick={() => setFicha(c)}>{c.nome}</button>
                     {mensal && <div className="font-mono text-[11px] text-muted-foreground">{fmtCpf(c.cpf)}</div>}
                   </td>
                   {!mensal && <td className="whitespace-nowrap border-b border-r px-2 font-mono text-xs">{fmtCpf(c.cpf)}</td>}
@@ -335,6 +343,8 @@ function Index() {
           setMarcas((m) => ({ ...m, [k]: "P" }));
         }}
       />
+      <SalariosDialog open={salOpen} funcoes={funcoes} valor={salarios} onClose={() => setSalOpen(false)} onSave={(v) => { setSalarios(v); setSalOpen(false); }} />
+      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumo(ficha.id, ficha.funcao, dias, marcas, horas, jornada, pontos, salarios) : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} />
       <ColabDialog colab={edit} funcoes={funcoes} onClose={() => setEdit(null)} onSave={salvar} />
     </div>
   );
@@ -492,6 +502,66 @@ function FeriadosDialog({ open, jornada, onClose, onSave }: { open: boolean; jor
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={() => onSave({ ...jornada, feriados: lista })}>Salvar</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SalariosDialog({ open, funcoes, valor, onClose, onSave }: { open: boolean; funcoes: string[]; valor: Salarios; onClose: () => void; onSave: (s: Salarios) => void }) {
+  const [f, setF] = useState(valor);
+  useEffect(() => { if (open) setF(valor); }, [open, valor]);
+  const num = (v: string) => { const n = parseFloat(v.replace(/\./g, "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Salário mensal por função</DialogTitle></DialogHeader>
+        <div className="space-y-2">
+          {funcoes.map((fn) => (
+            <label key={fn} className="flex items-center justify-between gap-3 text-sm">
+              <span>{fn}</span>
+              <Input className="w-36 text-right" inputMode="decimal" placeholder="0,00"
+                defaultValue={f.porFuncao[fn] ? String(f.porFuncao[fn]).replace(".", ",") : ""}
+                onChange={(e) => setF((x) => ({ ...x, porFuncao: { ...x.porFuncao, [fn]: num(e.target.value) } }))} />
+            </label>
+          ))}
+          <div className="grid grid-cols-3 gap-2 border-t pt-3 text-xs">
+            <label>Horas/mês (divisor)<Input type="number" value={f.divisor} onChange={(e) => setF({ ...f, divisor: Number(e.target.value) })} /></label>
+            <label>Extra seg–sáb (%)<Input type="number" value={f.pct50} onChange={(e) => setF({ ...f, pct50: Number(e.target.value) })} /></label>
+            <label>Extra dom/feriado (%)<Input type="number" value={f.pct100} onChange={(e) => setF({ ...f, pct100: Number(e.target.value) })} /></label>
+          </div>
+          <p className="text-xs text-muted-foreground">Valor da hora = salário ÷ horas/mês.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave(f)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void }) {
+  const L = ({ a, b, c }: { a: string; b: string; c?: string }) => (
+    <div className="flex justify-between border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="font-mono">{b}{c && <span className="ml-3 font-semibold">{c}</span>}</span></div>
+  );
+  return (
+    <Dialog open={!!colab} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        {colab && r && (<>
+          <DialogHeader><DialogTitle>{colab.nome}</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">{fmtCpf(colab.cpf)} · {colab.funcao} · {periodo}</p>
+          <div>
+            <L a="Presenças / Faltas / Justificadas" b={`${r.p} / ${r.f} / ${r.j}`} />
+            <L a="Salário mensal da função" b={r.salario ? fmtR(r.salario) : "não informado"} />
+            <L a="Valor da hora" b={fmtR(r.valorHora)} />
+            <L a="Horas normais" b={fmtH(r.normais)} c={fmtR(r.vNormal)} />
+            <L a="Horas extras (seg–sáb)" b={fmtH(r.e50)} c={fmtR(r.v50)} />
+            <L a="Horas extras (dom/feriado)" b={fmtH(r.e100)} c={fmtR(r.v100)} />
+            <div className="flex justify-between pt-3 text-base font-bold"><span>Total a receber no período</span><span className="font-mono text-primary">{fmtR(r.total)}</span></div>
+          </div>
+          {!r.salario && <p className="text-xs text-absent">Informe o salário da função para calcular os valores.</p>}
+          <DialogFooter><Button variant="outline" onClick={onSalarios}>Editar salários</Button><Button onClick={onClose}>Fechar</Button></DialogFooter>
+        </>)}
       </DialogContent>
     </Dialog>
   );
