@@ -124,7 +124,8 @@ export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: numbe
   const e = p.e >= INICIO - TOLERANCIA && p.e <= INICIO ? INICIO : p.e;
   const s = p.s >= fim - TOLERANCIA && p.s <= fim ? fim : p.s;
   const extra = Math.max(0, Math.min(INICIO, s) - e) + Math.max(0, s - Math.max(fim, e));
-  return { h: Math.max(0, s - e - ALMOCO) / 60, e: extra / 60 };
+  const h = Math.max(0, s - e - ALMOCO);
+  return { h: h / 60, e: Math.min(extra, h) / 60 };
 };
 /** Horas no dia: ponto completo > valor informado > P = jornada do dia. */
 export const horasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) =>
@@ -138,3 +139,29 @@ export const fmtH = (n: number) => {
   const t = Math.round(n * 60);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
 };
+
+/** Salários mensais por função + percentuais de hora extra. */
+export interface Salarios { porFuncao: Record<string, number>; divisor: number; pct50: number; pct100: number }
+const KEY_S = "rjr-freq-salarios";
+export const SALARIOS_PADRAO: Salarios = { porFuncao: {}, divisor: 220, pct50: 50, pct100: 100 };
+export const loadSalarios = (): Salarios => ({ ...SALARIOS_PADRAO, ...JSON.parse(localStorage.getItem(KEY_S) ?? "{}") });
+export const saveSalarios = (s: Salarios) => localStorage.setItem(KEY_S, JSON.stringify(s));
+/** Domingo e feriado pagam o percentual maior; dias úteis e sábado, o menor. */
+export const extra100 = (d: Date, j: Jornada) => d.getDay() === 0 || ehFeriado(d, j);
+export const fmtR = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+export interface Resumo { normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number }
+export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios): Resumo {
+  let normais = 0, e50 = 0, e100 = 0, P = 0, F = 0, J = 0;
+  for (const d of dias) {
+    const k = `${id}|${iso(d)}`;
+    const ht = horasDia(k, d, m, h, j, p), ex = Math.min(ht, extrasDia(k, d, m, h, j, p));
+    normais += ht - ex;
+    if (extra100(d, j)) e100 += ex; else e50 += ex;
+    if (m[k] === "P") P++; else if (m[k] === "F") F++; else if (m[k] === "J") J++;
+  }
+  const salario = s.porFuncao[funcao] ?? 0;
+  const valorHora = s.divisor > 0 ? salario / s.divisor : 0;
+  const vNormal = normais * valorHora, v50 = e50 * valorHora * (1 + s.pct50 / 100), v100 = e100 * valorHora * (1 + s.pct100 / 100);
+  return { normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario };
+}
