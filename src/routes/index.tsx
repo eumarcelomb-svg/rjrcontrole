@@ -16,6 +16,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Planilha interativa de presença dos colaboradores da RJR Construção Naval." },
       { property: "og:title", content: "Controle de Frequência — RJR Construção Naval" },
       { property: "og:description", content: "Planilha interativa de presença dos colaboradores da RJR Construção Naval." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -403,8 +405,9 @@ function HorasDialog({ alvo, valor, ponto, cfg, onClose, onSave }: { alvo: { k: 
   const pt: Ponto | undefined = e || s ? { e: parseMin(e), s: parseMin(s) } : undefined;
   const fim = alvo ? fimDia(alvo.d, cfg) : null;
   const calc = alvo ? calcPonto(pt, alvo.d, cfg) : null;
-  const jornada = alvo ? jornadaDia(alvo.d, cfg) : 0;
-  const salvar = () => onSave(pt ? undefined : n, pt);
+  const extra = alvo ? extrasDia(alvo.k, alvo.d, {}, n === undefined ? {} : { [alvo.k]: n }, cfg, pt ? { [alvo.k]: pt } : {}) : 0;
+  const pontoInvalido = !!pt && pt.e !== undefined && pt.s !== undefined && !calc;
+  const salvar = () => { if (!pontoInvalido) onSave(calc ? undefined : n, pt); };
   return (
     <Dialog open={!!alvo} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
@@ -420,17 +423,18 @@ function HorasDialog({ alvo, valor, ponto, cfg, onClose, onSave }: { alvo: { k: 
           <label className="block text-sm">Saída (check-out)<Input placeholder={fim ? hm(fim) : "17:00"} value={s} onChange={(x) => setS(x.target.value)} /></label>
         </div>
         {calc && <p className="text-sm">Horas: <b>{fmtH(calc.h)}</b> · Hora extra: <b className="text-primary">{fmtH(calc.e)}</b></p>}
-        {!pt && (
+        {!calc && (
           <>
             <label className="block text-sm">Ou informe só o total de horas (ex.: 10:30 ou 10,5)
               <Input value={t} onChange={(x) => setT(x.target.value)} onKeyDown={(x) => x.key === "Enter" && salvar()} />
             </label>
-            {n !== undefined && <p className="text-sm">Hora extra no dia: <b className="text-primary">{fmtH(Math.max(0, n - jornada))}</b></p>}
+            {n !== undefined && <p className="text-sm">Hora extra no dia: <b className="text-primary">{fmtH(extra)}</b></p>}
           </>
         )}
+        {pontoInvalido && <p role="alert" className="text-sm text-destructive">Informe uma saída posterior à entrada.</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onSave(undefined, undefined)}>Limpar horários</Button>
-          <Button onClick={salvar}>Salvar</Button>
+          <Button disabled={pontoInvalido} onClick={salvar}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
