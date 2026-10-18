@@ -204,7 +204,7 @@ function Index() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
+          Expediente de segunda a sexta (07:00–17:00, sexta até 16:00). Sábado, domingo e feriado: todas as horas contam como extra. Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
         </p>
 
         <div className="overflow-auto rounded-md border bg-card">
@@ -216,7 +216,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-left">Função</th>
                 {dias.map((d) => {
                   const k = iso(d);
-                  const fds = d.getDay() === 0 || ehFeriado(d, jornada);
+                  const fds = d.getDay() === 0 || d.getDay() === 6 || ehFeriado(d, jornada);
                   return (
                     <th
                       key={k}
@@ -226,7 +226,7 @@ function Index() {
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
-                      {ehFeriado(d, jornada) && <div className="text-[9px] text-primary">Feriado</div>}
+                      {ehFeriado(d, jornada) ? <div className="text-[9px] text-primary">Feriado</div> : fds && <div className="text-[9px] text-primary">Extra</div>}
                     </th>
                   );
                 })}
