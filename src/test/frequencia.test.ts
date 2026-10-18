@@ -27,6 +27,12 @@ describe("Horas extras RJR", () => {
     const cfg = { feriados: ["2026-10-12"] };
     expect(calcPonto({ e: 420, s: 1020 }, dia, cfg)).toEqual({ h: 9, e: 9 });
   });
+  it("conta como extra um turno curto no sábado, sem descontar almoço", () => {
+    expect(calcPonto({ e: 1200, s: 1290 }, sabado, jornada)).toEqual({ h: 1.5, e: 1.5 });
+  });
+  it("conta como extra um turno curto depois das 17:00 num dia útil", () => {
+    expect(calcPonto({ e: 1080, s: 1200 }, segunda, jornada)).toEqual({ h: 2, e: 2 });
+  });
   it("usa o total manual enquanto o check-out não foi informado", () => {
     const key = "c1|2026-10-17";
     expect(horasDia(key, sabado, { [key]: "P" }, { [key]: 9 }, jornada, { [key]: { e: 420 } })).toBe(9);
