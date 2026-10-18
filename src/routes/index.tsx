@@ -78,7 +78,7 @@ function Index() {
   const dias = useMemo(() => {
     if (modo === "semana") {
       const m = mondayOf(ref);
-      return [0, 1, 2, 3, 4, 5].map((i) => addDays(m, i));
+      return [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(m, i));
     }
     const n = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
     return Array.from({ length: n }, (_, i) => new Date(ref.getFullYear(), ref.getMonth(), i + 1));
@@ -86,7 +86,7 @@ function Index() {
 
   const titulo =
     modo === "semana"
-      ? `Semana ${dias[0]!.toLocaleDateString("pt-BR")} a ${dias[5]!.toLocaleDateString("pt-BR")}`
+      ? `Semana ${dias[0]!.toLocaleDateString("pt-BR")} a ${dias[6]!.toLocaleDateString("pt-BR")}`
       : `${MESES[ref.getMonth()]} ${ref.getFullYear()}`;
 
   const funcoes = useMemo(() => [...new Set(cols.map((c) => c.funcao))].sort(), [cols]);

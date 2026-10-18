@@ -25,13 +25,13 @@ function rows({ dias, colaboradores, marcas, horas, jornada, pontos }: ReportInp
       }
       return horas[k] !== undefined ? `${v} ${fmtH(horas[k]!)}`.trim() : v;
     });
-    const ht = dias.reduce((a, d) => a + horasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
     const he = dias.reduce((a, d) => a + extrasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
+    const ht = dias.reduce((a, d) => a + horasDia(`${c.id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0) - he;
     const t = (s: string) => vals.filter((v) => v.startsWith(s)).length;
     return [c.nome, fmtCpf(c.cpf), c.funcao, ...vals, t("P"), t("F"), t("J"), fmtH(ht), fmtH(he)];
   });
 }
-const header = (dias: Date[]) => ["Nome", "CPF", "Função", ...dias.map(dayLabel), "P", "F", "J", "Horas", "H. Extras"];
+const header = (dias: Date[]) => ["Nome", "CPF", "Função", ...dias.map(dayLabel), "P", "F", "J", "H. Normais", "H. Extras"];
 
 export async function exportXlsx(input: ReportInput) {
   const XLSX = await import("xlsx");

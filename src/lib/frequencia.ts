@@ -107,7 +107,10 @@ export const saveExtras = (h: Horas, j: Jornada, p: Pontos) => {
 };
 export const INICIO = 7 * 60;
 export const TOLERANCIA = 15;
-export const ALMOCO = 60; // minutos descontados nos dias úteis
+export const ALMOCO = 60; // minutos de almoço
+/** Só desconta almoço quando a jornada registrada passa de 6 horas; turnos curtos contam inteiros. */
+export const LIMITE_ALMOCO = 6 * 60;
+const almoco = (min: number) => (min > LIMITE_ALMOCO ? ALMOCO : 0);
 export const ehFeriado = (d: Date, j: Jornada) => j.feriados.includes(iso(d));
 /** Fim do expediente (min) ou null quando o dia todo é hora extra (sáb, dom, feriado). */
 export const fimDia = (d: Date, j: Jornada): number | null => {
@@ -120,11 +123,11 @@ export const jornadaDia = (d: Date, j: Jornada) => { const f = fimDia(d, j); ret
 export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: number; e: number } | null => {
   if (!p || p.e === undefined || p.s === undefined || p.s <= p.e) return null;
   const fim = fimDia(d, j);
-  if (fim === null) { const h = Math.max(0, p.s - p.e - ALMOCO) / 60; return { h, e: h }; }
+  if (fim === null) { const h = Math.max(0, p.s - p.e - almoco(p.s - p.e)) / 60; return { h, e: h }; }
   const e = p.e >= INICIO - TOLERANCIA && p.e <= INICIO ? INICIO : p.e;
   const s = p.s >= fim - TOLERANCIA && p.s <= fim ? fim : p.s;
   const extra = Math.max(0, Math.min(INICIO, s) - e) + Math.max(0, s - Math.max(fim, e));
-  const h = Math.max(0, s - e - ALMOCO);
+  const h = Math.max(0, s - e - almoco(s - e));
   return { h: h / 60, e: Math.min(extra, h) / 60 };
 };
 /** Horas no dia: ponto completo > valor informado > P = jornada do dia. */
