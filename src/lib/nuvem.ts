@@ -8,7 +8,7 @@ export interface Estado { cols: Colaborador[]; marcas: Marcas; horas: Horas; pon
 type Reg = { colaborador_id: string; data: string; status: Status | null; horas_manuais: number | null; entrada_min: number | null; saida_min: number | null };
 
 const KEY_MIG = "rjr-freq-migrado-nuvem";
-const ok = <T,>(r: { data: T; error: unknown }) => { if (r.error) throw r.error; return r.data; };
+const ok = <T,>(r: { data: T; error: unknown }): NonNullable<T> => { if (r.error) throw r.error; return r.data as NonNullable<T>; };
 
 /** Converte o estado da planilha em linhas da tabela registros_dia. */
 export function paraRegistros(e: Pick<Estado, "marcas" | "horas" | "pontos">): Map<string, Reg> {
@@ -40,7 +40,7 @@ async function lerNuvem(): Promise<Estado> {
     if (x.horas_manuais !== null) horas[k] = Number(x.horas_manuais);
     if (x.entrada_min !== null || x.saida_min !== null) pontos[k] = { e: x.entrada_min ?? undefined, s: x.saida_min ?? undefined };
   }
-  const conf = ok(cfg);
+  const conf = cfg.error ? null : cfg.data;
   const salarios: Salarios = {
     ...SALARIOS_PADRAO,
     porFuncao: Object.fromEntries(ok(s).map((x) => [x.funcao, Number(x.salario)])),
