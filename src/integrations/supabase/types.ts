@@ -14,7 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      colaboradores: {
+        Row: {
+          ativo: boolean
+          cpf: string
+          created_at: string
+          funcao: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cpf: string
+          created_at?: string
+          funcao: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cpf?: string
+          created_at?: string
+          funcao?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      configuracoes: {
+        Row: {
+          divisor: number
+          id: number
+          pct100: number
+          pct50: number
+          updated_at: string
+        }
+        Insert: {
+          divisor?: number
+          id?: number
+          pct100?: number
+          pct50?: number
+          updated_at?: string
+        }
+        Update: {
+          divisor?: number
+          id?: number
+          pct100?: number
+          pct50?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feriados: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string | null
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string | null
+        }
+        Relationships: []
+      }
+      registros_dia: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data: string
+          entrada_min: number | null
+          horas_manuais: number | null
+          id: string
+          saida_min: number | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data: string
+          entrada_min?: number | null
+          horas_manuais?: number | null
+          id?: string
+          saida_min?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data?: string
+          entrada_min?: number | null
+          horas_manuais?: number | null
+          id?: string
+          saida_min?: number | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_dia_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salarios_funcao: {
+        Row: {
+          created_at: string
+          funcao: string
+          salario: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          funcao: string
+          salario?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          funcao?: string
+          salario?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
