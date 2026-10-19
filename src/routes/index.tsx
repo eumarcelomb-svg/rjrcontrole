@@ -57,23 +57,29 @@ function Index() {
   const [salOpen, setSalOpen] = useState(false);
   const [ficha, setFicha] = useState<Colaborador | null>(null);
 
+  const ultimo = useRef<Estado | null>(null);
+  const fila = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
-    const d = loadData();
-    setCols(d.colaboradores);
-    setMarcas(d.marcas);
-    setHoras(loadHoras());
-    setJornada(loadJornada());
-    setPontos(loadPontos());
-    setSalarios(loadSalarios());
-    setLoaded(true);
+    carregar()
+      .then((d) => {
+        ultimo.current = d;
+        setCols(d.cols); setMarcas(d.marcas); setHoras(d.horas); setJornada(d.jornada); setPontos(d.pontos); setSalarios(d.salarios);
+        setLoaded(true);
+      })
+      .catch((e) => { console.error(e); toast.error("Não foi possível carregar os dados do Supabase. Recarregue a página."); });
   }, []);
   useEffect(() => {
-    if (loaded) saveData(cols, marcas);
-  }, [cols, marcas, loaded]);
-  useEffect(() => { if (loaded) saveSalarios(salarios); }, [salarios, loaded]);
-  useEffect(() => {
-    if (loaded) saveExtras(horas, jornada, pontos);
-  }, [horas, jornada, pontos, loaded]);
+    if (!loaded || !ultimo.current) return;
+    const novo: Estado = { cols, marcas, horas, jornada, pontos, salarios };
+    const t = setTimeout(() => {
+      const antes = ultimo.current!;
+      ultimo.current = novo;
+      fila.current = fila.current.then(() => sincronizar(antes, novo)).catch((e) => {
+        console.error(e); toast.error("Falha ao salvar no Supabase. Verifique a conexão.");
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [cols, marcas, horas, jornada, pontos, salarios, loaded]);
 
   const dias = useMemo(() => {
     if (modo === "semana") {
