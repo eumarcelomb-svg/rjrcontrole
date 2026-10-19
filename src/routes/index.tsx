@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { carregar, sincronizar, type Estado } from "@/lib/nuvem";
 import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
-import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, loadHoras, loadJornada, loadPontos, saveExtras, loadSalarios, saveSalarios, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
-import { addDays, fmtCpf, iso, loadData, mondayOf, padCpf, saveData, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
+import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
+import { addDays, fmtCpf, iso, mondayOf, padCpf, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 
 export const Route = createFileRoute("/")({
@@ -172,7 +174,7 @@ function Index() {
           <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}>
             <FileText /> PDF
           </Button>
-          <Button size="sm" onClick={() => setEdit({ id: `c${Date.now()}`, nome: "", cpf: "", funcao: "", ativo: true })}>
+          <Button size="sm" onClick={() => setEdit({ id: crypto.randomUUID(), nome: "", cpf: "", funcao: "", ativo: true })}>
             <Plus /> Colaborador
           </Button>
         </div>
