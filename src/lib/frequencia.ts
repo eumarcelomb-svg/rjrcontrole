@@ -8,6 +8,10 @@ export interface Colaborador {
 }
 export type Marcas = Record<string, Status>; // `${id}|${yyyy-mm-dd}`
 
+/** Ordena nomes em português sem alterar a coleção original. */
+export const ordenarColaboradores = (colaboradores: Colaborador[]) =>
+  [...colaboradores].sort((a, b) => a.nome.trim().localeCompare(b.nome.trim(), "pt-BR", { sensitivity: "base" }));
+
 const SEED: [string, string, string][] = [
   ["Daniel Nery de Araújo", "51912694204", "Encarregado"],
   ["João Carlos Assunção Monteiro", "3357087227", "Meio oficial de montagem"],

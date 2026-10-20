@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcPonto, extrasDia, horasDia, resumo, SALARIOS_PADRAO } from "@/lib/frequencia";
+import { calcPonto, extrasDia, horasDia, ordenarColaboradores, resumo, SALARIOS_PADRAO } from "@/lib/frequencia";
 
 const segunda = new Date(2026, 9, 12);
 const sexta = new Date(2026, 9, 16);
@@ -8,6 +8,26 @@ const domingo = new Date(2026, 9, 18);
 const jornada = { feriados: [] };
 
 describe("Horas extras RJR", () => {
+  it("ordena colaboradores pelo nome em português sem alterar os dados originais", () => {
+    const cols = ["Victor", "João", "Álvaro", "Alessandro"].map((nome, i) => ({ id: String(i), nome, cpf: "", funcao: "Montador", ativo: true }));
+    expect(ordenarColaboradores(cols).map((c) => c.nome)).toEqual(["Alessandro", "Álvaro", "João", "Victor"]);
+    expect(cols[0]?.nome).toBe("Victor");
+  });
+  it.each([12, 13, 14, 15])("soma 2h extras de 17h a 19h no dia útil %s na coluna e no resumo", (dia) => {
+    const data = new Date(2026, 9, dia);
+    const k = `c1|2026-10-${dia}`;
+    const pontos = { [k]: { e: 420, s: 1140 } };
+    const r = resumo("c1", "Montador", [data], { [k]: "P" }, {}, jornada, pontos, SALARIOS_PADRAO);
+    expect(extrasDia(k, data, { [k]: "P" }, {}, jornada, pontos)).toBe(2);
+    expect(r.e50 + r.e100).toBe(2);
+    expect(r.normais).toBe(9);
+  });
+  it("mantém sexta até 16h e inclui as horas após 17h no total extra", () => {
+    const k = "c1|2026-10-16";
+    const r = resumo("c1", "Montador", [sexta], { [k]: "P" }, {}, jornada, { [k]: { e: 420, s: 1140 } }, SALARIOS_PADRAO);
+    expect(r.e50).toBe(3);
+    expect(r.normais).toBe(8);
+  });
   it.each([sabado, domingo])("presença sem horários no fim de semana gera 9 horas extras: %s", (dia) => {
     const key = "c1|dia";
     expect(horasDia(key, dia, { [key]: "P" }, {}, jornada)).toBe(9);
