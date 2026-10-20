@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep manually entered daily hours until a valid, complete check-in/out replaces them, so partial punches do not erase calculated overtime.
+- Keep presence-only duration separate from normal scheduled hours: overtime-only days use a default presence shift, while their normal-hour allowance stays zero; use the shared calculation for sheet, employee summary, and exports.
