@@ -1,0 +1,3 @@
+- [x] Ordenar colaboradores alfabeticamente na planilha e no registro de ponto.
+- [x] Unificar totais e destacar horas extras na coluna e na ficha, mantendo sexta até 16h.
+- [x] Testar extras após o expediente e conferir gravação e leitura na tela.

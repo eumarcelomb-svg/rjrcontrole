@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
 import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
-import { addDays, fmtCpf, iso, mondayOf, padCpf, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
+import { addDays, fmtCpf, iso, mondayOf, ordenarColaboradores, padCpf, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 
 export const Route = createFileRoute("/")({
@@ -101,12 +101,12 @@ function Index() {
   const lista = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const qd = q.replace(/\D/g, "");
-    return cols.filter(
+    return ordenarColaboradores(cols.filter(
       (c) =>
         (mostrarInativos || c.ativo) &&
         (!funcao || c.funcao === funcao) &&
         (!q || c.nome.toLowerCase().includes(q) || (qd && c.cpf.includes(qd))),
-    );
+    ));
   }, [cols, busca, funcao, mostrarInativos]);
 
   const navegar = (dir: number) => {
@@ -138,8 +138,9 @@ function Index() {
   const total = (id: string, s: Status) => dias.filter((d) => marcas[`${id}|${iso(d)}`] === s).length;
   const totalDia = (dia: string, s: Status) => lista.filter((c) => marcas[`${c.id}|${dia}`] === s).length;
   const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada, pontos });
-  const somaH = (id: string) => dias.reduce((a, d) => a + horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos) - Math.min(horasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos)), 0);
-  const somaE = (id: string) => dias.reduce((a, d) => a + extrasDia(`${id}|${iso(d)}`, d, marcas, horas, jornada, pontos), 0);
+  const resumos = useMemo(() => new Map(cols.map((c) => [c.id, resumo(c.id, c.funcao, dias, marcas, horas, jornada, pontos, salarios)])), [cols, dias, marcas, horas, jornada, pontos, salarios]);
+  const somaH = (id: string) => resumos.get(id)?.normais ?? 0;
+  const somaE = (id: string) => { const r = resumos.get(id); return r ? r.e50 + r.e100 : 0; };
   const totH = lista.reduce((a, c) => a + somaH(c.id), 0);
   const totE = lista.reduce((a, c) => a + somaE(c.id), 0);
   const hoje = iso(new Date());
@@ -242,7 +243,7 @@ function Index() {
                 <th className="border-b border-r px-2 text-absent">F</th>
                 <th className="border-b border-r px-2 text-justified">J</th>
                 <th className="border-b border-r px-2">H. Normais</th>
-                <th className="border-b border-r px-2 text-primary">H. Extras</th>
+                <th className="sticky right-0 z-30 min-w-24 border-b border-l border-r bg-muted px-2 text-primary">H. Extras</th>
                 <th className="border-b px-2"></th>
               </tr>
             </thead>
@@ -283,7 +284,7 @@ function Index() {
                   <td className="border-b border-r px-2 text-center font-mono text-absent">{total(c.id, "F")}</td>
                   <td className="border-b border-r px-2 text-center font-mono text-justified">{total(c.id, "J")}</td>
                   <td className="border-b border-r px-2 text-center font-mono">{fmtH(somaH(c.id))}</td>
-                  <td className="border-b border-r px-2 text-center font-mono font-semibold text-primary">{fmtH(somaE(c.id))}</td>
+                  <td className="sticky right-0 z-20 min-w-24 border-b border-l border-r bg-card px-2 text-center font-mono font-bold text-primary">{fmtH(somaE(c.id))}</td>
                   <td className="whitespace-nowrap border-b px-1">
                     <Button variant="ghost" size="icon" className="size-7" onClick={() => setEdit(c)} aria-label="Editar"><Pencil /></Button>
                     <Button
@@ -312,7 +313,7 @@ function Index() {
                   ))}
                   <td colSpan={3}></td>
                   <td className="border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
-                  <td className="border-r text-center font-mono font-semibold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
+                  <td className="sticky right-0 z-20 min-w-24 border-l border-r bg-muted text-center font-mono font-bold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
                   <td></td>
                 </tr>
               ))}
@@ -341,7 +342,7 @@ function Index() {
       <FeriadosDialog open={cfgOpen} jornada={jornada} onClose={() => setCfgOpen(false)} onSave={(j) => { setJornada(j); setCfgOpen(false); }} />
       <PontoDialog
         open={pontoOpen}
-        colaboradores={cols.filter((c) => c.ativo)}
+        colaboradores={ordenarColaboradores(cols.filter((c) => c.ativo))}
         pontos={pontos}
         cfg={jornada}
         onClose={() => setPontoOpen(false)}
@@ -354,7 +355,7 @@ function Index() {
         }}
       />
       <SalariosDialog open={salOpen} funcoes={funcoes} valor={salarios} onClose={() => setSalOpen(false)} onSave={(v) => { setSalarios(v); setSalOpen(false); }} />
-      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumo(ficha.id, ficha.funcao, dias, marcas, horas, jornada, pontos, salarios) : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} />
+      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumos.get(ficha.id) ?? null : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} />
       <ColabDialog colab={edit} funcoes={funcoes} onClose={() => setEdit(null)} onSave={salvar} />
     </div>
   );
@@ -554,7 +555,7 @@ function SalariosDialog({ open, funcoes, valor, onClose, onSave }: { open: boole
 
 function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void }) {
   const L = ({ a, b, c }: { a: string; b: string; c?: string }) => (
-    <div className="flex justify-between border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="font-mono">{b}{c && <span className="ml-3 font-semibold">{c}</span>}</span></div>
+    <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="flex flex-wrap gap-x-3 font-mono">{b}{c && <span className="font-semibold">{c}</span>}</span></div>
   );
   return (
     <Dialog open={!!colab} onOpenChange={(o) => !o && onClose()}>
@@ -562,6 +563,10 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colabo
         {colab && r && (<>
           <DialogHeader><DialogTitle>{colab.nome}</DialogTitle></DialogHeader>
           <p className="text-xs text-muted-foreground">{fmtCpf(colab.cpf)} · {colab.funcao} · {periodo}</p>
+          <div className="flex items-center justify-between gap-3 border-y py-3 text-primary">
+            <span className="font-semibold">Total de horas extras</span>
+            <span className="font-mono text-2xl font-bold">{fmtH(r.e50 + r.e100)}</span>
+          </div>
           <div>
             <L a="Presenças / Faltas / Justificadas" b={`${r.p} / ${r.f} / ${r.j}`} />
             <L a="Salário mensal da função" b={r.salario ? fmtR(r.salario) : "não informado"} />
