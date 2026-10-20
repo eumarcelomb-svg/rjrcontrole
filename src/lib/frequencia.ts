@@ -130,9 +130,14 @@ export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: numbe
   const h = Math.max(0, s - e - almoco(s - e));
   return { h: h / 60, e: Math.min(extra, h) / 60 };
 };
-/** Horas no dia: ponto completo > valor informado > P = jornada do dia. */
+/** Presença sem horários usa 07:00–17:00 nos dias extras; a jornada normal continua zero. */
+export const horasPresenca = (d: Date, j: Jornada) => {
+  const fim = fimDia(d, j) ?? 17 * 60;
+  return (fim - INICIO - almoco(fim - INICIO)) / 60;
+};
+/** Horas no dia: ponto completo > valor informado > duração padrão da presença. */
 export const horasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) =>
-  calcPonto(p[k], d, j)?.h ?? h[k] ?? (m[k] === "P" ? jornadaDia(d, j) : 0);
+  calcPonto(p[k], d, j)?.h ?? h[k] ?? (m[k] === "P" ? horasPresenca(d, j) : 0);
 export const extrasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) => {
   const c = calcPonto(p[k], d, j);
   if (c) return c.e;

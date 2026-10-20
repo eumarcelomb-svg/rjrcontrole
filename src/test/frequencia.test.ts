@@ -8,6 +8,34 @@ const domingo = new Date(2026, 9, 18);
 const jornada = { feriados: [] };
 
 describe("Horas extras RJR", () => {
+  it.each([sabado, domingo])("presença sem horários no fim de semana gera 9 horas extras: %s", (dia) => {
+    const key = "c1|dia";
+    expect(horasDia(key, dia, { [key]: "P" }, {}, jornada)).toBe(9);
+    expect(extrasDia(key, dia, { [key]: "P" }, {}, jornada)).toBe(9);
+  });
+  it("presença no feriado gera 9 horas extras e nenhuma hora normal", () => {
+    const r = resumo("c1", "Montador", [segunda], { "c1|2026-10-12": "P" }, {},
+      { feriados: ["2026-10-12"] }, {}, SALARIOS_PADRAO);
+    expect(r.normais).toBe(0);
+    expect(r.e100).toBe(9);
+  });
+  it("inclui presenças de sábado e domingo na ficha e no valor a receber", () => {
+    const r = resumo("c1", "Montador", [sabado, domingo],
+      { "c1|2026-10-17": "P", "c1|2026-10-18": "P" }, {}, jornada, {},
+      { ...SALARIOS_PADRAO, porFuncao: { Montador: 2200 } });
+    expect(r.normais).toBe(0);
+    expect(r.e50).toBe(9);
+    expect(r.e100).toBe(9);
+    expect(r.total).toBe(315);
+  });
+  it("mantém as horas manuais e o ponto completo acima da presença padrão de domingo", () => {
+    const key = "c1|2026-10-18";
+    expect(extrasDia(key, domingo, { [key]: "P" }, { [key]: 5 }, jornada, { [key]: { e: 420 } })).toBe(5);
+    expect(extrasDia(key, domingo, { [key]: "P" }, { [key]: 5 }, jornada, { [key]: { e: 420, s: 660 } })).toBe(4);
+  });
+  it.each(["F", "J"] as const)("não atribui extras à marcação %s no sábado", (status) => {
+    expect(extrasDia("c1|dia", sabado, { "c1|dia": status }, {}, jornada)).toBe(0);
+  });
   it("desconta uma hora de almoço no expediente 07:00–17:00", () => {
     expect(calcPonto({ e: 420, s: 1020 }, segunda, jornada)).toEqual({ h: 9, e: 0 });
   });
