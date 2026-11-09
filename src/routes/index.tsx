@@ -167,13 +167,13 @@ function Index() {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-4 py-3">
-          <img src={logo.url} alt="RJR Construção Naval" className="h-10 w-auto" />
-          <div className="mr-auto">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 md:flex-wrap md:gap-4">
+          <img src={logo.url} alt="RJR Construção Naval" className="h-10 w-auto shrink-0" />
+          <div className="mr-auto min-w-0">
             <h1 className="text-base md:text-lg font-bold leading-tight">Lista de Presença — Colaboradores</h1>
             <p className="text-xs text-muted-foreground">RJR Construção Naval · dados salvos neste navegador</p>
           </div>
-          <Button variant="outline" size="icon" className="md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu /></Button>
+          <Button variant="outline" size="icon" className="shrink-0 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu /></Button>
           <div className="hidden flex-wrap items-center gap-2 md:flex">{acoes()}</div>
         </div>
       </header>
