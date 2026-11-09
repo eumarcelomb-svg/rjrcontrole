@@ -245,6 +245,15 @@ function Index() {
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
                       {ehFeriado(d, jornada) ? <div className="text-[9px] text-primary">Feriado</div> : fds && <div className="text-[9px] text-primary">Extra</div>}
+                      {(() => {
+                        if (fds || k > hoje) return null;
+                        const faltam = cols.filter((c) => c.ativo && !marcas[`${c.id}|${k}`]).length;
+                        return faltam > 0 ? (
+                          <div className="mx-auto mt-0.5 w-fit rounded-full bg-absent px-1.5 text-[9px] font-bold leading-4 text-primary-foreground" title={`${faltam} colaborador(es) sem frequência registrada`}>
+                            {faltam}
+                          </div>
+                        ) : null;
+                      })()}
                     </th>
                   );
                 })}
