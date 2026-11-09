@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, type Estado } from "@/lib/nuvem";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Search, UserX, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +45,8 @@ function Index() {
   const [marcas, setMarcas] = useState<Marcas>({});
   const [modo, setModo] = useState<"semana" | "mes">("semana");
   const [ref, setRef] = useState(() => new Date());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [funcao, setFuncao] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false);
@@ -151,38 +153,43 @@ function Index() {
     setEdit(null);
   };
 
+  const acoes = () => (
+    <>
+      <Button size="sm" variant="secondary" onClick={() => setPontoOpen(true)}><Clock /> Check-in / Check-out</Button>
+      <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}><CalendarX /> Feriados</Button>
+      <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}><DollarSign /> Salários</Button>
+      <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}><FileSpreadsheet /> Excel</Button>
+      <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}><FileText /> PDF</Button>
+      <Button size="sm" onClick={() => setEdit({ id: crypto.randomUUID(), nome: "", cpf: "", funcao: "", ativo: true })}><Plus /> Colaborador</Button>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-4 py-3">
           <img src={logo.url} alt="RJR Construção Naval" className="h-10 w-auto" />
           <div className="mr-auto">
-            <h1 className="text-lg font-bold leading-tight">Lista de Presença — Colaboradores</h1>
+            <h1 className="text-base md:text-lg font-bold leading-tight">Lista de Presença — Colaboradores</h1>
             <p className="text-xs text-muted-foreground">RJR Construção Naval · dados salvos neste navegador</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}>
-            <CalendarX /> Feriados
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}>
-            <DollarSign /> Salários
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setPontoOpen(true)}>
-            <Clock /> Check-in / Check-out
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}>
-            <FileSpreadsheet /> Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}>
-            <FileText /> PDF
-          </Button>
-          <Button size="sm" onClick={() => setEdit({ id: crypto.randomUUID(), nome: "", cpf: "", funcao: "", ativo: true })}>
-            <Plus /> Colaborador
-          </Button>
+          <Button variant="outline" size="icon" className="md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu /></Button>
+          <div className="hidden flex-wrap items-center gap-2 md:flex">{acoes()}</div>
         </div>
       </header>
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 md:hidden" role="dialog" aria-label="Menu">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-lg font-bold">Menu</span>
+            <Button variant="ghost" size="icon" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X /></Button>
+          </div>
+          <div className="flex flex-col gap-3 [&_button]:h-12 [&_button]:justify-start [&_button]:text-base" onClick={() => setMenuOpen(false)}>{acoes()}</div>
+        </div>
+      )}
 
       <main className="mx-auto max-w-[1600px] space-y-3 px-4 py-4">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+          <div className="flex items-center gap-1">
           <div className="inline-flex rounded-md border bg-card p-0.5">
             {(["semana", "mes"] as const).map((m) => (
               <button
@@ -195,13 +202,15 @@ function Index() {
             ))}
           </div>
           <Button variant="ghost" size="icon" onClick={() => navegar(-1)} aria-label="Anterior"><ChevronLeft /></Button>
-          <span className="min-w-52 text-center text-sm font-semibold">{titulo}</span>
+          <span className="flex-1 text-center md:min-w-52 md:flex-none text-sm font-semibold">{titulo}</span>
           <Button variant="ghost" size="icon" onClick={() => navegar(1)} aria-label="Próximo"><ChevronRight /></Button>
           <Button variant="ghost" size="sm" onClick={() => setRef(new Date())}>Hoje</Button>
+          <Button variant="ghost" size="icon" className="ml-auto md:ml-0" onClick={() => setInfoOpen((v) => !v)} aria-label="Informações do expediente" aria-expanded={infoOpen}><Info /></Button>
+          </div>
 
-          <div className="relative ml-auto">
+          <div className="relative md:ml-auto">
             <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome ou CPF" className="w-56 pl-8" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome ou CPF" className="w-full pl-8 md:w-56" />
           </div>
           <select value={funcao} onChange={(e) => setFuncao(e.target.value)} className="h-9 rounded-md border bg-card px-2 text-sm">
             <option value="">Todas as funções</option>
@@ -212,17 +221,17 @@ function Index() {
           </label>
         </div>
 
-        <p className="text-xs text-muted-foreground">
+        {infoOpen && <p className="rounded-md border bg-card p-3 text-xs text-muted-foreground">
           Expediente de segunda a sexta (07:00–17:00, sexta até 16:00). Sábado, domingo e feriado: todas as horas contam como extra. Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
-        </p>
+        </p>}
 
         <div className="overflow-auto rounded-md border bg-card">
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-muted">
               <tr>
-                <th className="sticky left-0 z-20 min-w-60 border-b border-r bg-muted px-2 py-2 text-left">Nome</th>
-                {!mensal && <th className="border-b border-r px-2 text-left">CPF</th>}
-                <th className="border-b border-r px-2 text-left">Função</th>
+                <th className="sticky left-0 z-20 md:min-w-60 border-b border-r bg-muted px-2 py-2 text-left">Nome</th>
+                {!mensal && <th className="hidden md:table-cell border-b border-r px-2 text-left">CPF</th>}
+                <th className="hidden md:table-cell border-b border-r px-2 text-left">Função</th>
                 {dias.map((d) => {
                   const k = iso(d);
                   const fds = d.getDay() === 0 || d.getDay() === 6 || ehFeriado(d, jornada);
@@ -231,7 +240,7 @@ function Index() {
                       key={k}
                       onClick={() => marcarColuna(k)}
                       title="Marcar presença para todos"
-                      className={`cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
+                      className={`${k === hoje ? "" : "hidden md:table-cell "}cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
@@ -239,12 +248,12 @@ function Index() {
                     </th>
                   );
                 })}
-                <th className="border-b border-r px-2 text-present">P</th>
-                <th className="border-b border-r px-2 text-absent">F</th>
-                <th className="border-b border-r px-2 text-justified">J</th>
-                <th className="border-b border-r px-2">H. Normais</th>
-                <th className="sticky right-0 z-30 min-w-24 border-b border-l border-r bg-muted px-2 text-primary">H. Extras</th>
-                <th className="border-b px-2"></th>
+                <th className="hidden md:table-cell border-b border-r px-2 text-present">P</th>
+                <th className="hidden md:table-cell border-b border-r px-2 text-absent">F</th>
+                <th className="hidden md:table-cell border-b border-r px-2 text-justified">J</th>
+                <th className="hidden md:table-cell border-b border-r px-2">H. Normais</th>
+                <th className="hidden md:table-cell sticky right-0 z-30 min-w-24 border-b border-l border-r bg-muted px-2 text-primary">H. Extras</th>
+                <th className="hidden md:table-cell border-b px-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -254,13 +263,13 @@ function Index() {
                     <button className="text-left hover:text-primary hover:underline" onClick={() => setFicha(c)}>{c.nome}</button>
                     {mensal && <div className="font-mono text-[11px] text-muted-foreground">{fmtCpf(c.cpf)}</div>}
                   </td>
-                  {!mensal && <td className="whitespace-nowrap border-b border-r px-2 font-mono text-xs">{fmtCpf(c.cpf)}</td>}
-                  <td className="whitespace-nowrap border-b border-r px-2 text-xs">{c.funcao}</td>
+                  {!mensal && <td className="hidden md:table-cell whitespace-nowrap border-b border-r px-2 font-mono text-xs">{fmtCpf(c.cpf)}</td>}
+                  <td className="hidden md:table-cell whitespace-nowrap border-b border-r px-2 text-xs">{c.funcao}</td>
                   {dias.map((d) => {
                     const k = iso(d);
                     const v = marcas[`${c.id}|${k}`];
                     return (
-                      <td key={k} className="border-b border-r p-0">
+                      <td key={k} className={`${k === hoje ? "" : "hidden md:table-cell "}border-b border-r p-0`}>
                         <button
                           disabled={!c.ativo}
                           onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
@@ -280,12 +289,12 @@ function Index() {
                       </td>
                     );
                   })}
-                  <td className="border-b border-r px-2 text-center font-mono text-present">{total(c.id, "P")}</td>
-                  <td className="border-b border-r px-2 text-center font-mono text-absent">{total(c.id, "F")}</td>
-                  <td className="border-b border-r px-2 text-center font-mono text-justified">{total(c.id, "J")}</td>
-                  <td className="border-b border-r px-2 text-center font-mono">{fmtH(somaH(c.id))}</td>
-                  <td className="sticky right-0 z-20 min-w-24 border-b border-l border-r bg-card px-2 text-center font-mono font-bold text-primary">{fmtH(somaE(c.id))}</td>
-                  <td className="whitespace-nowrap border-b px-1">
+                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-present">{total(c.id, "P")}</td>
+                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-absent">{total(c.id, "F")}</td>
+                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-justified">{total(c.id, "J")}</td>
+                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono">{fmtH(somaH(c.id))}</td>
+                  <td className="hidden md:table-cell sticky right-0 z-20 min-w-24 border-b border-l border-r bg-card px-2 text-center font-mono font-bold text-primary">{fmtH(somaE(c.id))}</td>
+                  <td className="hidden md:table-cell whitespace-nowrap border-b px-1">
                     <Button variant="ghost" size="icon" className="size-7" onClick={() => setEdit(c)} aria-label="Editar"><Pencil /></Button>
                     <Button
                       variant="ghost" size="icon" className="size-7"
@@ -307,14 +316,14 @@ function Index() {
                   <td className="sticky left-0 border-r bg-muted px-2 py-1 font-semibold" colSpan={1}>
                     Total {s === "P" ? "presenças" : s === "F" ? "faltas" : "justificadas"}
                   </td>
-                  <td className="border-r" colSpan={mensal ? 1 : 2}></td>
+                  <td className="hidden md:table-cell border-r" colSpan={mensal ? 1 : 2}></td>
                   {dias.map((d) => (
-                    <td key={iso(d)} className="border-r text-center font-mono">{totalDia(iso(d), s) || ""}</td>
+                    <td key={iso(d)} className={`${iso(d) === hoje ? "" : "hidden md:table-cell "}border-r text-center font-mono`}>{totalDia(iso(d), s) || ""}</td>
                   ))}
-                  <td colSpan={3}></td>
-                  <td className="border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
-                  <td className="sticky right-0 z-20 min-w-24 border-l border-r bg-muted text-center font-mono font-bold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
-                  <td></td>
+                  <td className="hidden md:table-cell" colSpan={3}></td>
+                  <td className="hidden md:table-cell border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
+                  <td className="hidden md:table-cell sticky right-0 z-20 min-w-24 border-l border-r bg-muted text-center font-mono font-bold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
+                  <td className="hidden md:table-cell"></td>
                 </tr>
               ))}
             </tfoot>
