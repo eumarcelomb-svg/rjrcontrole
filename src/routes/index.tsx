@@ -168,10 +168,12 @@ function Index() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 md:flex-wrap md:gap-4">
-          <img src={logo.url} alt="RJR Construção Naval" className="h-10 w-auto shrink-0" />
-          <div className="mr-auto min-w-0">
-            <h1 className="text-base md:text-lg font-bold leading-tight">Lista de Presença — Colaboradores</h1>
-            <p className="text-xs text-muted-foreground">RJR Construção Naval · dados salvos neste navegador</p>
+          <div className="mr-auto flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-4">
+            <img src={logo.url} alt="RJR Construção Naval" className="h-9 w-fit shrink-0 md:h-10" />
+            <div className="min-w-0">
+              <h1 className="text-base font-bold leading-tight md:text-lg">Lista de Presença — Colaboradores</h1>
+              <p className="text-xs text-muted-foreground">RJR Construção Naval</p>
+            </div>
           </div>
           <Button variant="outline" size="icon" className="shrink-0 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menu"><Menu /></Button>
           <div className="hidden flex-wrap items-center gap-2 md:flex">{acoes()}</div>
@@ -189,6 +191,7 @@ function Index() {
 
       <main className="mx-auto max-w-[1600px] space-y-3 px-4 py-4">
         <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-1">
           <div className="flex items-center gap-1">
           <div className="inline-flex rounded-md border bg-card p-0.5">
             {(["semana", "mes"] as const).map((m) => (
@@ -201,11 +204,14 @@ function Index() {
               </button>
             ))}
           </div>
+          <Button variant="ghost" size="sm" className="ml-auto md:order-last" onClick={() => setRef(new Date())}>Hoje</Button>
+          <Button variant="ghost" size="icon" className="md:order-last" onClick={() => setInfoOpen((v) => !v)} aria-label="Informações do expediente" aria-expanded={infoOpen}><Info /></Button>
+          </div>
+          <div className="flex items-center gap-1 rounded-md border bg-card md:border-0 md:bg-transparent">
           <Button variant="ghost" size="icon" onClick={() => navegar(-1)} aria-label="Anterior"><ChevronLeft /></Button>
           <span className="flex-1 text-center md:min-w-52 md:flex-none text-sm font-semibold">{titulo}</span>
           <Button variant="ghost" size="icon" onClick={() => navegar(1)} aria-label="Próximo"><ChevronRight /></Button>
-          <Button variant="ghost" size="sm" onClick={() => setRef(new Date())}>Hoje</Button>
-          <Button variant="ghost" size="icon" className="ml-auto md:ml-0" onClick={() => setInfoOpen((v) => !v)} aria-label="Informações do expediente" aria-expanded={infoOpen}><Info /></Button>
+          </div>
           </div>
 
           <div className="relative md:ml-auto">
