@@ -17,7 +17,7 @@ describe("Backup JSON completo", () => {
   });
   it("inclui salários e feriados no backup completo", () => {
     const d = lerBackup(criarBackup(estado));
-    expect(d.salarios.porFuncao.Montador).toBe(2200);
+    expect(d.salarios.porFuncao["Montador"]).toBe(2200);
     expect(d.jornada.feriados).toEqual(["2026-11-02"]);
   });
   it("conta um registro por dia mesmo com presença, horas e ponto", () => {
