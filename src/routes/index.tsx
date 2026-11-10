@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { carregar, sincronizar, type Estado } from "@/lib/nuvem";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck } from "lucide-react";
+import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
+import { baixarBackup, contarRegistros, criarBackup, lerBackup } from "@/lib/backup";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -60,6 +61,11 @@ function Index() {
   const [salarios, setSalarios] = useState<Salarios>(SALARIOS_PADRAO);
   const [salOpen, setSalOpen] = useState(false);
   const [ficha, setFicha] = useState<Colaborador | null>(null);
+  const [backupPendente, setBackupPendente] = useState<Estado | null>(null);
+  const [backupNome, setBackupNome] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [backupPronto, setBackupPronto] = useState<string | null>(null);
+  const arquivoBackup = useRef<HTMLInputElement>(null);
 
   const ultimo = useRef<Estado | null>(null);
   const fila = useRef<Promise<void>>(Promise.resolve());
@@ -73,17 +79,54 @@ function Index() {
       .catch((e) => { console.error(e); toast.error("Não foi possível carregar os dados do Supabase. Recarregue a página."); });
   }, []);
   useEffect(() => {
-    if (!loaded || !ultimo.current) return;
+    if (!loaded || ocupado || !ultimo.current) return;
     const novo: Estado = { cols, marcas, horas, jornada, pontos, salarios };
     const t = setTimeout(() => {
-      const antes = ultimo.current!;
+      const antes = ultimo.current;
+      if (!antes) return;
       ultimo.current = novo;
       fila.current = fila.current.then(() => sincronizar(antes, novo)).catch((e) => {
         console.error(e); toast.error("Falha ao salvar no Supabase. Verifique a conexão.");
       });
     }, 400);
     return () => clearTimeout(t);
-  }, [cols, marcas, horas, jornada, pontos, salarios, loaded]);
+  }, [cols, marcas, horas, jornada, pontos, salarios, loaded, ocupado]);
+
+  async function salvarPendencias() {
+    const novo = { cols, marcas, horas, jornada, pontos, salarios };
+    const antes = ultimo.current;
+    await fila.current;
+    if (antes) await sincronizar(antes, novo);
+    ultimo.current = novo;
+  }
+  async function prepararBackup() {
+    setOcupado(true);
+    try {
+      await salvarPendencias();
+      setBackupPronto(criarBackup(await carregar()));
+    } catch { toast.error("Não foi possível preparar o backup. Verifique a conexão e tente novamente."); }
+    finally { setOcupado(false); }
+  }
+  async function selecionarBackup(file: File | undefined) {
+    if (!file) return;
+    try {
+      const dados = lerBackup(await file.text());
+      setBackupNome(file.name); setBackupPendente(dados);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Arquivo inválido."); }
+  }
+  async function confirmarRestauracao() {
+    if (!backupPendente) return;
+    setOcupado(true);
+    try {
+      await salvarPendencias();
+      const d = await restaurarBackup(backupPendente);
+      ultimo.current = d;
+      setCols(d.cols); setMarcas(d.marcas); setHoras(d.horas); setPontos(d.pontos); setJornada(d.jornada); setSalarios(d.salarios);
+      setBackupPendente(null); setFicha(null); setBusca(""); setFuncao("");
+      toast.success("Backup restaurado e salvo no Supabase.");
+    } catch { toast.error("Não foi possível restaurar. Nenhum dado do backup foi aplicado; tente novamente."); }
+    finally { setOcupado(false); }
+  }
 
   const dias = useMemo(() => {
     if (modo === "semana") {
@@ -160,12 +203,15 @@ function Index() {
       <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}><DollarSign /> Salários</Button>
       <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}><FileSpreadsheet /> Excel</Button>
       <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}><FileText /> PDF</Button>
+      <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={prepararBackup}><Download /> Exportar backup JSON</Button>
+      <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => arquivoBackup.current?.click()}><Upload /> Restaurar backup JSON</Button>
       <Button size="sm" onClick={() => setEdit({ id: crypto.randomUUID(), nome: "", cpf: "", funcao: "", ativo: true })}><Plus /> Colaborador</Button>
     </>
   );
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
+      <input ref={arquivoBackup} type="file" accept=".json,application/json" className="hidden" aria-label="Arquivo de backup JSON" onChange={(e) => { void selecionarBackup(e.target.files?.[0]); e.target.value = ""; }} />
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 md:flex-wrap md:gap-4">
           <div className="mr-auto flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-4">
@@ -180,7 +226,7 @@ function Index() {
         </div>
       </header>
       {menuOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background p-4 md:hidden" role="dialog" aria-label="Menu">
+        <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background p-4 md:hidden" role="dialog" aria-label="Menu">
           <div className="mb-4 flex items-center justify-between">
             <span className="text-lg font-bold">Menu</span>
             <Button variant="ghost" size="icon" onClick={() => setMenuOpen(false)} aria-label="Fechar menu"><X /></Button>
@@ -189,7 +235,7 @@ function Index() {
         </div>
       )}
 
-      <main className="mx-auto max-w-[1600px] space-y-3 px-4 py-4">
+      <main inert={ocupado} className="mx-auto max-w-[1600px] space-y-3 px-4 py-4">
         <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-1">
           <div className="flex items-center gap-1">
@@ -347,6 +393,22 @@ function Index() {
         <p className="text-xs text-muted-foreground">{lista.length} colaborador(es) exibido(s) · {cols.filter((c) => c.ativo).length} ativo(s)</p>
       </main>
 
+      <Dialog open={!!backupPronto} onOpenChange={(o) => { if (!o) setBackupPronto(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Backup completo pronto</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Inclui todos os colaboradores, ativos e inativos, registros de todos os períodos, entradas, saídas, horas manuais, feriados e salários. Guarde o arquivo em local seguro: ele contém CPFs e salários.</p>
+          <DialogFooter><Button onClick={() => { if (backupPronto) baixarBackup(backupPronto); }}><Download /> Baixar JSON</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!backupPendente} onOpenChange={(o) => { if (!o && !ocupado) setBackupPendente(null); }}>
+        <DialogContent onEscapeKeyDown={(e) => { if (ocupado) e.preventDefault(); }} onPointerDownOutside={(e) => { if (ocupado) e.preventDefault(); }}>
+          <DialogHeader><DialogTitle>Restaurar backup completo?</DialogTitle></DialogHeader>
+          <p className="break-all text-sm font-medium">{backupNome}</p>
+          <p className="text-sm">{backupPendente?.cols.length ?? 0} colaboradores · {backupPendente ? contarRegistros(backupPendente) : 0} registros de frequência.</p>
+          <p className="text-sm text-destructive">Todos os dados atuais serão substituídos, inclusive feriados e salários, em todos os aparelhos. Exporte um backup antes de continuar.</p>
+          <DialogFooter><Button variant="outline" disabled={ocupado} onClick={() => setBackupPendente(null)}>Cancelar</Button><Button variant="destructive" disabled={ocupado} onClick={confirmarRestauracao}><Upload /> {ocupado ? "Restaurando…" : "Confirmar restauração"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       <HorasDialog
         alvo={horaEdit}
         valor={horaEdit ? horas[horaEdit.k] : undefined}

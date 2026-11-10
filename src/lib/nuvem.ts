@@ -26,10 +26,10 @@ export function paraRegistros(e: Pick<Estado, "marcas" | "horas" | "pontos">): M
 
 async function lerNuvem(): Promise<Estado> {
   const [c, r, f, s, cfg] = await Promise.all([
-    supabase.from("colaboradores").select("*").order("created_at"),
-    supabase.from("registros_dia").select("*").limit(100000),
-    supabase.from("feriados").select("data"),
-    supabase.from("salarios_funcao").select("*"),
+    lerTodas("colaboradores", "id"),
+    lerTodas("registros_dia", "id"),
+    lerTodas("feriados", "data"),
+    lerTodas("salarios_funcao", "funcao"),
     supabase.from("configuracoes").select("*").eq("id", 1).maybeSingle(),
   ]);
   const cols = ok(c).map((x) => ({ id: x.id, nome: x.nome, cpf: x.cpf, funcao: x.funcao, ativo: x.ativo }));
@@ -47,6 +47,30 @@ async function lerNuvem(): Promise<Estado> {
     ...(conf ? { divisor: Number(conf.divisor), pct50: Number(conf.pct50), pct100: Number(conf.pct100) } : {}),
   };
   return { cols, marcas, horas, pontos, jornada: { feriados: ok(f).map((x) => x.data) }, salarios };
+}
+
+/** Paginação explícita evita backups truncados pelo limite da API. */
+async function lerTodas<T extends "colaboradores" | "registros_dia" | "feriados" | "salarios_funcao">(tabela: T, ordem: string) {
+  const primeira = ok(await supabase.from(tabela).select("*").order(ordem).range(0, 499));
+  const linhas = [...primeira];
+  let lote = primeira;
+  while (lote.length === 500) {
+    lote = ok(await supabase.from(tabela).select("*").order(ordem).range(linhas.length, linhas.length + 499));
+    linhas.push(...lote);
+  }
+  return { data: linhas, error: null };
+}
+
+/** A função do banco restaura todas as tabelas dentro de uma única transação. */
+export async function restaurarBackup(e: Estado): Promise<Estado> {
+  ok(await supabase.rpc("restaurar_backup_rjr", { backup: {
+    colaboradores: e.cols.map((c) => ({ ...c })),
+    registros: [...paraRegistros(e).values()],
+    feriados: e.jornada.feriados,
+    salarios: Object.entries(e.salarios.porFuncao).map(([funcao, salario]) => ({ funcao, salario })),
+    configuracoes: { divisor: e.salarios.divisor, pct50: e.salarios.pct50, pct100: e.salarios.pct100 },
+  } }));
+  return e;
 }
 
 /** Copia uma única vez os dados guardados no navegador para o Supabase (casando colaboradores pelo CPF). */
