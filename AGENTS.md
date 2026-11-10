@@ -13,3 +13,5 @@
 - Keep presence-only duration separate from normal scheduled hours: overtime-only days use a default presence shift, while their normal-hour allowance stays zero; use the shared calculation for sheet, employee summary, and exports.
 - Derive sheet totals and employee modal totals from the same period summary so normal and overtime values cannot diverge.
 - Use the shared locale-aware employee ordering helper for lists so filtering and exports preserve consistent ordering without mutating stored data.
+- Version and validate complete JSON backups before confirmation; restore through an invoker-rights transactional RPC so failures cannot partially replace data.
+- Paginate cloud reads explicitly so full-state backups include records beyond the Data API page limit.

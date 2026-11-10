@@ -156,7 +156,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      restaurar_backup_rjr: { Args: { backup: Json }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
