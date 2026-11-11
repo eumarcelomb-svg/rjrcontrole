@@ -16,3 +16,4 @@
 - Version and validate complete JSON backups before confirmation; restore through an invoker-rights transactional RPC so failures cannot partially replace data.
 - Paginate cloud reads explicitly so full-state backups include records beyond the Data API page limit.
 - Generate EPI receipt PDFs on demand in the browser, with one A4 page per employee and a separate ready-to-download action to preserve mobile user activation; do not persist unsigned receipts as delivery records.
+- Keep manual attendance PDFs separate from calculated attendance exports, using the current filtered employee list and a selected date without modifying attendance records.
