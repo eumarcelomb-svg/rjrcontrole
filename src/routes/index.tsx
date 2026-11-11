@@ -11,6 +11,7 @@ import logo from "@/assets/rjr-logo.jpg.asset.json";
 import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
 import { addDays, fmtCpf, iso, mondayOf, ordenarColaboradores, padCpf, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
+import { EpiDialog } from "@/components/epi-dialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -60,6 +61,7 @@ function Index() {
   const [cfgOpen, setCfgOpen] = useState(false);
   const [salarios, setSalarios] = useState<Salarios>(SALARIOS_PADRAO);
   const [salOpen, setSalOpen] = useState(false);
+  const [epiOpen, setEpiOpen] = useState(false);
   const [ficha, setFicha] = useState<Colaborador | null>(null);
   const [backupPendente, setBackupPendente] = useState<Estado | null>(null);
   const [backupNome, setBackupNome] = useState("");
@@ -203,6 +205,7 @@ function Index() {
       <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}><DollarSign /> Salários</Button>
       <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}><FileSpreadsheet /> Excel</Button>
       <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}><FileText /> PDF</Button>
+      <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setEpiOpen(true)}><FileText /> Recebimento de EPI</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={prepararBackup}><Download /> Exportar backup JSON</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => arquivoBackup.current?.click()}><Upload /> Restaurar backup JSON</Button>
       <Button size="sm" onClick={() => setEdit({ id: crypto.randomUUID(), nome: "", cpf: "", funcao: "", ativo: true })}><Plus /> Colaborador</Button>
@@ -400,6 +403,7 @@ function Index() {
           <DialogFooter><Button onClick={() => { if (backupPronto) baixarBackup(backupPronto); }}><Download /> Baixar JSON</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      {epiOpen && <EpiDialog colaboradores={cols} onClose={() => setEpiOpen(false)} />}
       <Dialog open={!!backupPendente} onOpenChange={(o) => { if (!o && !ocupado) setBackupPendente(null); }}>
         <DialogContent onEscapeKeyDown={(e) => { if (ocupado) e.preventDefault(); }} onPointerDownOutside={(e) => { if (ocupado) e.preventDefault(); }}>
           <DialogHeader><DialogTitle>Restaurar backup completo?</DialogTitle></DialogHeader>
