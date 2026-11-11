@@ -1,50 +1,53 @@
-import { fmtCpf, ordenarColaboradores, type Colaborador } from "./frequencia";
+import { ordenarColaboradores, type Colaborador } from "./frequencia";
 
-/** Uma ficha A4 por colaborador, com os itens de entrega preenchidos no papel. */
+export function gruposEpi(colaboradores: Colaborador[]) {
+  const funcoes = [...new Set(colaboradores.map((c) => c.funcao))].sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+  return funcoes.map((funcao) => ({
+    funcao,
+    nomes: ordenarColaboradores(colaboradores.filter((c) => c.funcao === funcao)).map((c) => c.nome),
+  }));
+}
+
+/** Ficha coletiva, com campos preenchidos no papel e sem dados de CPF. */
 export async function criarFichasEpi(colaboradores: Colaborador[]): Promise<Blob> {
-  if (!colaboradores.length) throw new Error("Selecione um colaborador para gerar a ficha.");
+  if (!colaboradores.length) throw new Error("Nenhum colaborador cadastrado para gerar a ficha.");
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  ordenarColaboradores(colaboradores).forEach((c, index) => {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  gruposEpi(colaboradores).forEach((grupo, index) => {
     if (index) doc.addPage();
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("RJR CONSTRUÇÃO NAVAL", 14, 20);
-    doc.setFontSize(12);
-    doc.text("FICHA DE RECEBIMENTO DE EPI", 14, 29);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    const nome = doc.splitTextToSize(`Colaborador: ${c.nome}`, 182);
-    doc.text(nome, 14, 41);
-    const cpfY = 41 + nome.length * 5;
-    doc.text(`CPF: ${fmtCpf(c.cpf)}`, 14, cpfY);
-    const funcao = doc.splitTextToSize(`Função: ${c.funcao}`, 182);
-    doc.text(funcao, 14, cpfY + 7);
-    const tabelaY = cpfY + 7 + funcao.length * 5 + 8;
+    const funcao = doc.splitTextToSize(`Função: ${grupo.funcao}`, 269);
+    const tabelaY = 40 + funcao.length * 5 + 9;
     autoTable(doc, {
       startY: tabelaY,
-      head: [["Data", "Equipamento / descrição", "CA", "Qtd.", "Assinatura do colaborador"]],
-      body: Array.from({ length: 10 }, () => ["", "", "", "", ""]),
+      head: [["Nome do colaborador", "EPI / equipamento", "Data", "Assinatura do colaborador"]],
+      body: grupo.nomes.map((nome) => [nome, "", "", ""]),
       theme: "grid",
-      styles: { fontSize: 9, cellPadding: 2, minCellHeight: 10, textColor: 0, lineColor: 140, lineWidth: 0.2 },
+      styles: { fontSize: 10, cellPadding: 3, minCellHeight: 16, textColor: 0, lineColor: 140, lineWidth: 0.2, valign: "middle" },
       headStyles: { fillColor: 235, textColor: 0, fontStyle: "bold", minCellHeight: 12 },
-      columnStyles: { 0: { cellWidth: 23 }, 1: { cellWidth: 62 }, 2: { cellWidth: 22 }, 3: { cellWidth: 13 }, 4: { cellWidth: 62 } },
-      margin: { left: 14, right: 14 },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 85 }, 2: { cellWidth: 29 }, 3: { cellWidth: 75 } },
+      margin: { top: tabelaY, bottom: 23, left: 14, right: 14 },
+      rowPageBreak: "avoid",
+      didDrawPage: () => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text("RJR CONSTRUÇÃO NAVAL", 14, 20);
+        doc.setFontSize(12);
+        doc.text("FICHA DE RECEBIMENTO DE EPI", 14, 29);
+        doc.setFontSize(11);
+        doc.text(funcao, 14, 40);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("Ao assinar, o colaborador confirma o recebimento dos EPIs descritos na sua linha.", 14, 194);
+      },
     });
-    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
-    const y = finalY + 10;
-    doc.setFontSize(10);
-    doc.text(doc.splitTextToSize("Declaro que recebi os equipamentos de proteção individual relacionados e assinados nesta ficha.", 182), 14, y);
-    doc.text("Local: __________________________________   Data: ____/____/________", 14, y + 20);
-    doc.line(14, y + 40, 99, y + 40);
-    doc.line(111, y + 40, 196, y + 40);
-    doc.setFontSize(9);
-    doc.text("Assinatura do colaborador", 14, y + 46);
-    doc.text("Responsável pela entrega", 111, y + 46);
-    doc.setFontSize(8);
-    doc.text(`RJR Construção Naval · Recebimento de EPI · ${index + 1}/${colaboradores.length}`, 14, 285);
   });
+  const total = doc.getNumberOfPages();
+  for (let pagina = 1; pagina <= total; pagina++) {
+    doc.setPage(pagina);
+    doc.setFontSize(8);
+    doc.text(`RJR Construção Naval · Recebimento de EPI · ${pagina}/${total}`, 14, 203);
+  }
   return doc.output("blob");
 }
 
