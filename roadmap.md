@@ -2,3 +2,4 @@
 - [x] Unificar totais e destacar horas extras na coluna e na ficha, mantendo sexta até 16h.
 - [x] Testar extras após o expediente e conferir gravação e leitura na tela.
 - [x] Exportar e restaurar backup JSON completo com validação e confirmação, verificando download e leitura após restauração.
+- [x] Baixar fichas de recebimento de EPI para assinatura, por colaborador ou todos os ativos, e verificar o PDF no computador e celular.
