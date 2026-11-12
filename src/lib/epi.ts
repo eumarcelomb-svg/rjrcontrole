@@ -9,12 +9,13 @@ export function gruposEpi(colaboradores: Colaborador[]) {
 }
 
 /** Ficha coletiva, com campos preenchidos no papel e sem dados de CPF. */
-export async function criarFichasEpi(colaboradores: Colaborador[]): Promise<Blob> {
-  if (!colaboradores.length) throw new Error("Nenhum colaborador cadastrado para gerar a ficha.");
+export async function criarFichasEpi(colaboradores: Colaborador[], funcoes?: string[]): Promise<Blob> {
+  const grupos = funcoes ? gruposEpi(colaboradores).filter((g) => funcoes.includes(g.funcao)) : gruposEpi(colaboradores);
+  if (!grupos.length) throw new Error("Nenhum colaborador cadastrado para gerar a ficha.");
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  gruposEpi(colaboradores).forEach((grupo, index) => {
+  grupos.forEach((grupo, index) => {
     if (index) doc.addPage();
     const funcao = doc.splitTextToSize(`Função: ${grupo.funcao}`, 269);
     const tabelaY = 40 + funcao.length * 5 + 9;
