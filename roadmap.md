@@ -4,4 +4,4 @@
 - [x] Exportar e restaurar backup JSON completo com validação e confirmação, verificando download e leitura após restauração.
 - [x] Baixar fichas de recebimento de EPI para assinatura, por colaborador ou todos os ativos, e verificar o PDF no computador e celular.
 - [x] Baixar ficha de presença manual com nome, função e assinatura, sem CPF, e verificar no computador e celular.
-- [ ] Atualizar ficha de EPI com todos os nomes agrupados por função, sem CPF, com EPI, data e assinatura em branco; testar e conferir o PDF.
+- [x] Atualizar ficha de EPI com todos os nomes agrupados por função, sem CPF, com EPI, data e assinatura em branco; testar e conferir o PDF.
