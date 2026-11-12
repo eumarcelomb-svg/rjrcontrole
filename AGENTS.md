@@ -17,3 +17,4 @@
 - Paginate cloud reads explicitly so full-state backups include records beyond the Data API page limit.
 - Generate collective EPI receipt PDFs on demand in the browser, starting each job-function group on a fresh A4 landscape page and preserving its heading across overflow pages; keep a separate ready-to-download action for mobile user activation and do not persist unsigned receipts as delivery records.
 - Keep manual attendance PDFs separate from calculated attendance exports, using the current filtered employee list and a selected date without modifying attendance records.
+- Generate VT signature sheets on demand in the browser with draft transport-by-colleague flags and a separate download action; unsigned sheets must not become payment records or change attendance/payroll data.
