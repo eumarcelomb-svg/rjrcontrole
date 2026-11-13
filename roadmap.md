@@ -6,3 +6,4 @@
 - [x] Baixar ficha de presença manual com nome, função e assinatura, sem CPF, e verificar no computador e celular.
 - [x] Atualizar ficha de EPI com todos os nomes agrupados por função, sem CPF, com EPI, data e assinatura em branco; testar e conferir o PDF.
 - [x] Criar ficha semanal de VT de R$50, com todos os nomes, data de entrega e quadrado de transporte por colega; verificar seleção e PDF no computador e celular.
+- [ ] Criar página de controle de EPI, registrar e editar entregas no Supabase, filtrar histórico e verificar gravação e leitura no computador e celular.
