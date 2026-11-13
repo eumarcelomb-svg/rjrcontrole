@@ -68,6 +68,54 @@ export type Database = {
         }
         Relationships: []
       }
+      entregas_epi: {
+        Row: {
+          assinatura_confirmada: boolean
+          ca: string
+          colaborador_funcao: string
+          colaborador_id: string
+          colaborador_nome: string
+          created_at: string
+          data_entrega: string
+          equipamento: string
+          id: string
+          observacoes: string
+          quantidade: number
+          responsavel: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura_confirmada?: boolean
+          ca?: string
+          colaborador_funcao: string
+          colaborador_id: string
+          colaborador_nome: string
+          created_at?: string
+          data_entrega: string
+          equipamento: string
+          id?: string
+          observacoes?: string
+          quantidade: number
+          responsavel?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura_confirmada?: boolean
+          ca?: string
+          colaborador_funcao?: string
+          colaborador_id?: string
+          colaborador_nome?: string
+          created_at?: string
+          data_entrega?: string
+          equipamento?: string
+          id?: string
+          observacoes?: string
+          quantidade?: number
+          responsavel?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           created_at: string

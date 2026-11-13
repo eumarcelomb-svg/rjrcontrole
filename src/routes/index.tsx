@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
@@ -211,6 +211,7 @@ function Index() {
       <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}><FileText /> PDF</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setPresencaManualOpen(true)}><FileText /> Presença manual</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setEpiOpen(true)}><FileText /> Recebimento de EPI</Button>
+      <Button variant="outline" size="sm" asChild><Link to="/epi"><FileText /> Controle de EPI</Link></Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setVtOpen(true)}><DollarSign /> Recebimento de VT</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={prepararBackup}><Download /> Exportar backup JSON</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => arquivoBackup.current?.click()}><Upload /> Restaurar backup JSON</Button>
