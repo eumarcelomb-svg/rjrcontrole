@@ -5,4 +5,4 @@
 - [x] Baixar fichas de recebimento de EPI para assinatura, por colaborador ou todos os ativos, e verificar o PDF no computador e celular.
 - [x] Baixar ficha de presença manual com nome, função e assinatura, sem CPF, e verificar no computador e celular.
 - [x] Atualizar ficha de EPI com todos os nomes agrupados por função, sem CPF, com EPI, data e assinatura em branco; testar e conferir o PDF.
-- [ ] Criar ficha semanal de VT de R$50, com todos os nomes, data de entrega e quadrado de transporte por colega; verificar seleção e PDF no computador e celular.
+- [x] Criar ficha semanal de VT de R$50, com todos os nomes, data de entrega e quadrado de transporte por colega; verificar seleção e PDF no computador e celular.
