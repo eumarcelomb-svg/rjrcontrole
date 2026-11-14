@@ -94,3 +94,27 @@ describe("Horas extras RJR", () => {
     expect(r.total).toBe(135);
   });
 });
+describe("Ponto parcial e identificação das extras", () => {
+  it("só a saída às 18:00 na sexta conta 2h extras (expediente até 16:00)", () => {
+    const k = "c1|2026-10-16";
+    const r = resumo("c1", "Montador", [sexta], { [k]: "P" }, {}, jornada, { [k]: { s: 1080 } }, SALARIOS_PADRAO);
+    expect(r.e50).toBe(2);
+    expect(r.normais).toBe(8);
+  });
+  it("só a saída às 19:00 na segunda conta 2h extras a 50%", () => {
+    const k = "c1|2026-10-12";
+    expect(extrasDia(k, segunda, { [k]: "P" }, {}, jornada, { [k]: { s: 1140 } })).toBe(2);
+  });
+  it("só a entrada às 06:00 na segunda conta 1h extra", () => {
+    const k = "c1|2026-10-12";
+    expect(extrasDia(k, segunda, { [k]: "P" }, {}, jornada, { [k]: { e: 360 } })).toBe(1);
+  });
+  it("lista o dia da extra com 50% na semana e 100% no domingo", () => {
+    const ks = "c1|2026-10-12", kd = "c1|2026-10-18";
+    const r = resumo("c1", "Montador", [segunda, domingo], { [ks]: "P", [kd]: "P" }, {}, jornada, { [ks]: { e: 420, s: 1140 } }, SALARIOS_PADRAO);
+    expect(r.extrasDias).toEqual([
+      { data: "2026-10-12", horas: 2, pct: 50, domingoFeriado: false },
+      { data: "2026-10-18", horas: 9, pct: 100, domingoFeriado: true },
+    ]);
+  });
+});
