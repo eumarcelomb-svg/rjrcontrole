@@ -33,7 +33,7 @@ export function resumoEntregasEpi(entregas: EntregaEpi[]) {
   };
 }
 
-export function filtrarEntregasEpi(entregas: EntregaEpi[], filtros: { q?: string; funcao?: string; assinatura?: string; inicio?: string; fim?: string }) {
+export function filtrarEntregasEpi(entregas: EntregaEpi[], filtros: { q?: string | undefined; funcao?: string | undefined; assinatura?: string | undefined; inicio?: string | undefined; fim?: string | undefined }) {
   const q = (filtros.q ?? "").trim().toLocaleLowerCase("pt-BR");
   return entregas.filter((e) =>
     (!q || [e.colaborador_nome, e.equipamento, e.ca, e.responsavel].some((v) => v.toLocaleLowerCase("pt-BR").includes(q))) &&
