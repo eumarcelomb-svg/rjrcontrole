@@ -171,8 +171,8 @@ export const saveSalarios = (s: Salarios) => localStorage.setItem(KEY_S, JSON.st
 export const extra100 = (d: Date, j: Jornada) => d.getDay() === 0 || ehFeriado(d, j);
 export const fmtR = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export interface ExtraDia { data: string; horas: number; pct: 50 | 100 }
-export interface Resumo { extrasDias: ExtraDia[]; normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number }
+export interface ExtraDia { data: string; horas: number; pct: number; domingoFeriado: boolean }
+export interface Resumo { extrasDias: ExtraDia[]; normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number; pct50: number; pct100: number }
 export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios): Resumo {
   let normais = 0, e50 = 0, e100 = 0, P = 0, F = 0, J = 0;
   const extrasDias: ExtraDia[] = [];
@@ -181,11 +181,11 @@ export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: H
     const c = calcDia(k, d, m, h, j, p), ex = Math.min(c.h, c.e);
     normais += c.h - ex;
     if (extra100(d, j)) e100 += ex; else e50 += ex;
-    if (ex > 0) extrasDias.push({ data: iso(d), horas: ex, pct: extra100(d, j) ? 100 : 50 });
+    if (ex > 0) extrasDias.push({ data: iso(d), horas: ex, pct: extra100(d, j) ? s.pct100 : s.pct50, domingoFeriado: extra100(d, j) });
     if (m[k] === "P") P++; else if (m[k] === "F") F++; else if (m[k] === "J") J++;
   }
   const salario = s.porFuncao[funcao] ?? 0;
   const valorHora = s.divisor > 0 ? salario / s.divisor : 0;
   const vNormal = normais * valorHora, v50 = e50 * valorHora * (1 + s.pct50 / 100), v100 = e100 * valorHora * (1 + s.pct100 / 100);
-  return { extrasDias, normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario };
+  return { extrasDias, normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario, pct50: s.pct50, pct100: s.pct100 };
 }
