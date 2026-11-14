@@ -139,14 +139,23 @@ export const horasPresenca = (d: Date, j: Jornada) => {
   const fim = fimDia(d, j) ?? 17 * 60;
   return (fim - INICIO - almoco(fim - INICIO)) / 60;
 };
-/** Horas no dia: ponto completo > valor informado > duração padrão da presença. */
-export const horasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) =>
-  calcPonto(p[k], d, j)?.h ?? h[k] ?? (m[k] === "P" ? horasPresenca(d, j) : 0);
-export const extrasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) => {
+/** Ponto com só entrada ou só saída: completa o lado que falta com o horário normal (07:00 / fim do expediente). */
+export const pontoPresumido = (p: Ponto | undefined, d: Date, j: Jornada): Ponto | undefined =>
+  !p || (p.e === undefined && p.s === undefined) ? undefined : { e: p.e ?? INICIO, s: p.s ?? fimDia(d, j) ?? 17 * 60 };
+/** Horas e extras do dia: ponto completo > valor informado > ponto parcial presumido > duração padrão da presença. */
+export const calcDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}): { h: number; e: number } => {
   const c = calcPonto(p[k], d, j);
-  if (c) return c.e;
-  return m[k] === "P" || h[k] !== undefined ? Math.max(0, horasDia(k, d, m, h, j) - jornadaDia(d, j)) : 0;
+  if (c) return c;
+  const manual = h[k];
+  if (manual !== undefined) return { h: manual, e: Math.min(manual, Math.max(0, manual - jornadaDia(d, j))) };
+  if (m[k] !== "P") return { h: 0, e: 0 };
+  const parcial = calcPonto(pontoPresumido(p[k], d, j), d, j);
+  if (parcial) return parcial;
+  const hp = horasPresenca(d, j);
+  return { h: hp, e: Math.max(0, hp - jornadaDia(d, j)) };
 };
+export const horasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) => calcDia(k, d, m, h, j, p).h;
+export const extrasDia = (k: string, d: Date, m: Marcas, h: Horas, j: Jornada, p: Pontos = {}) => calcDia(k, d, m, h, j, p).e;
 export const fmtH = (n: number) => {
   const t = Math.round(n * 60);
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
@@ -162,18 +171,21 @@ export const saveSalarios = (s: Salarios) => localStorage.setItem(KEY_S, JSON.st
 export const extra100 = (d: Date, j: Jornada) => d.getDay() === 0 || ehFeriado(d, j);
 export const fmtR = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export interface Resumo { normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number }
+export interface ExtraDia { data: string; horas: number; pct: 50 | 100 }
+export interface Resumo { extrasDias: ExtraDia[]; normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number }
 export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios): Resumo {
   let normais = 0, e50 = 0, e100 = 0, P = 0, F = 0, J = 0;
+  const extrasDias: ExtraDia[] = [];
   for (const d of dias) {
     const k = `${id}|${iso(d)}`;
-    const ht = horasDia(k, d, m, h, j, p), ex = Math.min(ht, extrasDia(k, d, m, h, j, p));
-    normais += ht - ex;
+    const c = calcDia(k, d, m, h, j, p), ex = Math.min(c.h, c.e);
+    normais += c.h - ex;
     if (extra100(d, j)) e100 += ex; else e50 += ex;
+    if (ex > 0) extrasDias.push({ data: iso(d), horas: ex, pct: extra100(d, j) ? 100 : 50 });
     if (m[k] === "P") P++; else if (m[k] === "F") F++; else if (m[k] === "J") J++;
   }
   const salario = s.porFuncao[funcao] ?? 0;
   const valorHora = s.divisor > 0 ? salario / s.divisor : 0;
   const vNormal = normais * valorHora, v50 = e50 * valorHora * (1 + s.pct50 / 100), v100 = e100 * valorHora * (1 + s.pct100 / 100);
-  return { normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario };
+  return { extrasDias, normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario };
 }
