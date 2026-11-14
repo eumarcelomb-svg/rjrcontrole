@@ -346,7 +346,7 @@ function Index() {
                           onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
                           onDoubleClick={() => (setMarca(c.id, k, PREV[v ?? ""]), setHoraEdit({ k: `${c.id}|${k}`, d, nome: c.nome }))}
                           onContextMenu={(e) => { e.preventDefault(); setMarca(c.id, k, undefined); }}
-                          className={`h-8 w-full font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
+                          className={`min-h-8 w-full py-0.5 font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
                           <div className="leading-none">{v ?? ""}</div>
                           {pontos[`${c.id}|${k}`] && !mensal ? (
@@ -356,6 +356,14 @@ function Index() {
                           ) : horas[`${c.id}|${k}`] !== undefined && (
                             <div className="text-[10px] font-normal leading-none text-foreground/70">{fmtH(horas[`${c.id}|${k}`]!)}</div>
                           )}
+                          {(() => {
+                            const ex = resumos.get(c.id)?.extrasDias.find((x) => x.data === k);
+                            return ex ? (
+                              <div className={`text-[10px] font-bold leading-none ${ex.domingoFeriado ? "text-absent" : "text-primary"}`} title={`${fmtH(ex.horas)} de hora extra a ${ex.pct}%`}>
+                                +{fmtH(ex.horas)}{mensal ? "" : ` ${ex.pct}%`}
+                              </div>
+                            ) : null;
+                          })()}
                         </button>
                       </td>
                     );
@@ -671,8 +679,23 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colabo
             <L a="Salário mensal da função" b={r.salario ? fmtR(r.salario) : "não informado"} />
             <L a="Valor da hora" b={fmtR(r.valorHora)} />
             <L a="Horas normais" b={fmtH(r.normais)} c={fmtR(r.vNormal)} />
-            <L a="Horas extras (seg–sáb)" b={fmtH(r.e50)} c={fmtR(r.v50)} />
-            <L a="Horas extras (dom/feriado)" b={fmtH(r.e100)} c={fmtR(r.v100)} />
+            <L a={`Horas extras ${r.pct50}% (seg–sáb, após o expediente)`} b={fmtH(r.e50)} c={fmtR(r.v50)} />
+            <L a={`Horas extras ${r.pct100}% (domingo e feriado)`} b={fmtH(r.e100)} c={fmtR(r.v100)} />
+            <div className="pt-3">
+              <div className="mb-1 text-sm font-semibold">Dias com hora extra</div>
+              {r.extrasDias.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhuma hora extra no período.</p>
+              ) : (
+                <ul className="max-h-40 overflow-y-auto rounded border text-sm">
+                  {r.extrasDias.map((x) => (
+                    <li key={x.data} className="flex justify-between gap-3 border-b px-2 py-1 last:border-b-0">
+                      <span>{new Date(`${x.data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })}</span>
+                      <span className="font-mono">{fmtH(x.horas)} <b className={x.domingoFeriado ? "text-absent" : "text-primary"}>{x.pct}%</b></span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <div className="flex justify-between pt-3 text-base font-bold"><span>Total a receber no período</span><span className="font-mono text-primary">{fmtR(r.total)}</span></div>
           </div>
           {!r.salario && <p className="text-xs text-absent">Informe o salário da função para calcular os valores.</p>}
