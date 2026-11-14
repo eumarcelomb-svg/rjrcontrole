@@ -33,17 +33,18 @@ export const salvarEntregaEpi = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { clienteEpi } = await import("./entregas-epi-store.server");
     const db = clienteEpi();
+    const { id, ...campos } = data;
     const { data: colaborador, error } = await db.from("colaboradores").select("nome,funcao").eq("id", data.colaborador_id).single();
     if (error || !colaborador) throw new Error("Colaborador não encontrado. Recarregue a página.");
     if (data.id) {
       const { data: anterior, error: erroAnterior } = await db.from("entregas_epi").select("colaborador_id,colaborador_nome,colaborador_funcao").eq("id", data.id).single();
       if (erroAnterior || !anterior) throw new Error("Entrega não encontrada. Recarregue a página.");
       const identidade = anterior.colaborador_id === data.colaborador_id ? { colaborador_nome: anterior.colaborador_nome, colaborador_funcao: anterior.colaborador_funcao } : { colaborador_nome: colaborador.nome, colaborador_funcao: colaborador.funcao };
-      const { data: row, error: erroSalvar } = await db.from("entregas_epi").update({ ...data, ...identidade }).eq("id", data.id).select("*").single();
+      const { data: row, error: erroSalvar } = await db.from("entregas_epi").update({ ...campos, ...identidade }).eq("id", data.id).select("*").single();
       if (erroSalvar) throw new Error("Não foi possível salvar a entrega.");
       return row;
     }
-    const { data: row, error: erroSalvar } = await db.from("entregas_epi").insert({ ...data, colaborador_nome: colaborador.nome, colaborador_funcao: colaborador.funcao }).select("*").single();
+    const { data: row, error: erroSalvar } = await db.from("entregas_epi").insert({ ...campos, colaborador_nome: colaborador.nome, colaborador_funcao: colaborador.funcao }).select("*").single();
     if (erroSalvar) throw new Error("Não foi possível registrar a entrega.");
     return row;
   });

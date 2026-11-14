@@ -14,15 +14,15 @@ import { filtrarEntregasEpi, resumoEntregasEpi, type EntregaEpi } from "@/lib/en
 import logo from "@/assets/rjr-logo.jpg.asset.json";
 
 const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi() });
-type Filtros = { q?: string; funcao?: string; assinatura?: string; inicio?: string; fim?: string };
+type Filtros = { q?: string | undefined; funcao?: string | undefined; assinatura?: string | undefined; inicio?: string | undefined; fim?: string | undefined };
 
 export const Route = createFileRoute("/epi")({
   validateSearch: (search: Record<string, unknown>): Filtros => ({
-    q: typeof search.q === "string" ? search.q : undefined,
-    funcao: typeof search.funcao === "string" ? search.funcao : undefined,
-    assinatura: search.assinatura === "confirmada" || search.assinatura === "pendente" ? search.assinatura : undefined,
-    inicio: typeof search.inicio === "string" ? search.inicio : undefined,
-    fim: typeof search.fim === "string" ? search.fim : undefined,
+    q: typeof search['q'] === "string" ? search['q'] : undefined,
+    funcao: typeof search['funcao'] === "string" ? search['funcao'] : undefined,
+    assinatura: search['assinatura'] === "confirmada" || search['assinatura'] === "pendente" ? search['assinatura'] : undefined,
+    inicio: typeof search['inicio'] === "string" ? search['inicio'] : undefined,
+    fim: typeof search['fim'] === "string" ? search['fim'] : undefined,
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(epiQuery),
   head: () => ({ meta: [
