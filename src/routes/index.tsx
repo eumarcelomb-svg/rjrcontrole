@@ -349,21 +349,6 @@ function Index() {
                           className={`min-h-8 w-full py-0.5 font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
                           <div className="leading-none">{v ?? ""}</div>
-                          {pontos[`${c.id}|${k}`] && !mensal ? (
-                            <div className="text-[10px] font-normal leading-none text-foreground/70">
-                              {hm(pontos[`${c.id}|${k}`]!.e)}–{hm(pontos[`${c.id}|${k}`]!.s)}
-                            </div>
-                          ) : horas[`${c.id}|${k}`] !== undefined && (
-                            <div className="text-[10px] font-normal leading-none text-foreground/70">{fmtH(horas[`${c.id}|${k}`]!)}</div>
-                          )}
-                          {(() => {
-                            const ex = resumos.get(c.id)?.extrasDias.find((x) => x.data === k);
-                            return ex ? (
-                              <div className={`text-[10px] font-bold leading-none ${ex.domingoFeriado ? "text-absent" : "text-primary"}`} title={`${fmtH(ex.horas)} de hora extra a ${ex.pct}%`}>
-                                +{fmtH(ex.horas)}{mensal ? "" : ` ${ex.pct}%`}
-                              </div>
-                            ) : null;
-                          })()}
                         </button>
                       </td>
                     );
@@ -687,7 +672,7 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colabo
                 <p className="text-xs text-muted-foreground">Nenhuma hora extra no período.</p>
               ) : (
                 <ul className="max-h-40 overflow-y-auto rounded border text-sm">
-                  {r.extrasDias.map((x) => (
+                  {[...r.extrasDias].sort((a, b) => a.data.localeCompare(b.data)).map((x) => (
                     <li key={x.data} className="flex justify-between gap-3 border-b px-2 py-1 last:border-b-0">
                       <span>{new Date(`${x.data}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })}</span>
                       <span className="font-mono">{fmtH(x.horas)} <b className={x.domingoFeriado ? "text-absent" : "text-primary"}>{x.pct}%</b></span>
