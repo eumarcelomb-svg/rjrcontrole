@@ -42,7 +42,7 @@ export function VtDialog({ colaboradores, onClose }: { colaboradores: Colaborado
           }} />
         </label>)}
       </div>
-      <p className="text-sm text-muted-foreground">{linhas.length} colaboradores, incluindo inativos · {transportados.length} transportado(s) por colega</p>
+      <p className="text-sm text-muted-foreground">{linhas.length} colaboradores, incluindo desligados · {transportados.length} transportado(s) por colega</p>
       <p className="text-xs text-muted-foreground">Ficha para assinatura no papel, sem CPF. As marcações ficam nesta ficha; gerar o PDF não registra entrega nem altera o valor do VT.</p>
       {pdf && <p role="status" className="text-sm font-medium">Ficha de VT pronta.</p>}
       <DialogFooter className="gap-2">

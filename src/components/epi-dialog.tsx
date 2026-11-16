@@ -45,7 +45,7 @@ export function EpiDialog({ colaboradores, onClose }: { colaboradores: Colaborad
             </label>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">{totalSelecionado} de {colaboradores.length} colaboradores selecionados, incluindo inativos. Campos em branco para preenchimento manual do EPI, data e assinatura ao lado de cada nome.</p>
+        <p className="text-sm text-muted-foreground">{totalSelecionado} de {colaboradores.length} colaboradores selecionados, incluindo desligados. Campos em branco para preenchimento manual do EPI, data e assinatura ao lado de cada nome.</p>
         {pdf && <p role="status" className="text-sm font-medium">PDF pronto · {selecionadas.length} grupo(s) por função.</p>}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
