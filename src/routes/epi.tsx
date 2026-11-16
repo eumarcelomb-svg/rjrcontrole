@@ -62,7 +62,7 @@ function EpiError({ error, reset }: ErrorComponentProps) {
       setTentando(false);
     }
   }
-  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p><div className="flex flex-wrap gap-2"><Button disabled={tentando} onClick={() => void tentarNovamente()}><RotateCw />{tentando ? "Carregando…" : "Tentar novamente"}</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
+  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p>{error?.message ? <p className="text-xs text-muted-foreground">Detalhe: {error.message}</p> : null}<div className="flex flex-wrap gap-2"><Button disabled={tentando} onClick={() => void tentarNovamente()}><RotateCw />{tentando ? "Carregando…" : "Tentar novamente"}</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
 }
 
 function ControleEpi() {
