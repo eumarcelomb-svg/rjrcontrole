@@ -1,4 +1,4 @@
-- [ ] Gerar e baixar PDF completo da folha fechada e PDFs individuais com descrição das extras; testar downloads e conferir páginas.
+- [x] Gerar e baixar PDF completo da folha fechada e PDFs individuais com descrição das extras; testar downloads e conferir páginas.
 - [x] Permitir ajustes pontuais de extras anteriores na folha, incluindo 02–08/11 e 09–15/11, preservar frequência e verificar gravação, cálculo e leitura.
 - [x] Ordenar colaboradores alfabeticamente na planilha e no registro de ponto.
 - [x] Unificar totais e destacar horas extras na coluna e na ficha, mantendo sexta até 16h.
