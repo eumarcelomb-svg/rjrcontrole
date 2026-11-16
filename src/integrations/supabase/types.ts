@@ -119,6 +119,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fechamentos_folha: {
+        Row: {
+          created_at: string
+          data_pagamento: string
+          id: string
+          itens: Json
+          periodo_fim: string
+          periodo_inicio: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento: string
+          id?: string
+          itens?: Json
+          periodo_fim: string
+          periodo_inicio: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          itens?: Json
+          periodo_fim?: string
+          periodo_inicio?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           created_at: string
