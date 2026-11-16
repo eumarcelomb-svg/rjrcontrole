@@ -62,8 +62,17 @@ export async function criarPdfFolha(fechamento: Fechamento, colaboradorId?: stri
       showFoot: "lastPage", columnStyles: { 0: { cellWidth: 93 }, 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "center" }, 5: { halign: "right" } },
     });
   }
-  for (const i of itens) {
-    if (!individual) doc.addPage();
+  if (!individual) {
+    const linhas = itens.flatMap((i) => detalhesExtrasFolha(i).map((e) => [i.nome, e.periodo, e.descricao, fmtH(e.horas), `${e.pct}%`, fmtR(e.valor)]));
+    if (linhas.length) {
+      doc.addPage();
+      autoTable(doc, { ...comum, startY: 41,
+        head: [["Colaborador", "Data / período", "Descrição das extras", "Horas", "Adicional", "Valor"]],
+        body: linhas, columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 48 }, 3: { cellWidth: 20 }, 4: { cellWidth: 22 }, 5: { cellWidth: 29, halign: "right" } },
+      });
+    }
+  }
+  for (const i of individual ? itens : []) {
     cabecalho();
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
     const nome = doc.splitTextToSize(i.nome, largura - 28) as string[];

@@ -79,7 +79,7 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
       {ver && <div className="flex items-center justify-between text-sm"><span>Fechamento salvo de <b>{br(ver.data_pagamento)}</b> · período {br(ver.periodo_inicio)} a {br(ver.periodo_fim)}</span><Button size="sm" variant="outline" onClick={() => setVer(null)}>Voltar</Button></div>}
       {ver && <FolhaPdfActions key={`${ver.id}-${ver.created_at}`} fechamento={ver} />}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[620px] text-sm">
           <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="py-2">Colaborador</th><th className="text-right">50% salário</th><th className="text-right">Extras 50%</th><th className="text-right">Extras 100%</th><th className="text-right">Faltas</th><th className="text-right">Total</th></tr></thead>
           <tbody>{itens.map((i) => <tr key={i.colaborador_id} className="border-b">
             <td className="py-2"><div className="font-medium">{i.nome}</div><div className="text-xs text-muted-foreground">{i.funcao}</div></td>
