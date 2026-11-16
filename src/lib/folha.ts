@@ -35,7 +35,8 @@ export function proximoPagamento(ref: Date): string {
   return datasPagamento(ref, 0, 1)[0] ?? hoje;
 }
 
-export type ItemFolha = { colaborador_id: string; nome: string; funcao: string; salario: number; base: number; e50: number; e100: number; v50: number; v100: number; faltas: number; total: number; ajustes?: AjusteFolha[] };
+export type ExtraFolha = { data: string; horas: number; pct: number; valor: number };
+export type ItemFolha = { colaborador_id: string; nome: string; funcao: string; salario: number; base: number; e50: number; e100: number; v50: number; v100: number; faltas: number; total: number; ajustes?: AjusteFolha[]; extrasDias?: ExtraFolha[]; valorHora?: number; pct50?: number; pct100?: number };
 
 export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios, ajustes: AjusteFolha[] = []) {
   const { inicio, fim } = periodoPagamento(dataPagamento);
@@ -55,7 +56,8 @@ export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Mar
     const e100 = r.e100 + ajustesColaborador.reduce((t, a) => t + a.horas100, 0);
     const v50 = e50 * r.valorHora * (1 + s.pct50 / 100);
     const v100 = e100 * r.valorHora * (1 + s.pct100 / 100);
-    return { colaborador_id: c.id, nome: c.nome, funcao: c.funcao, salario: r.salario, base, e50, e100, v50, v100, faltas: r.f, total: base + v50 + v100, ajustes: ajustesColaborador };
+    const extrasDias = r.extrasDias.map((e) => ({ data: e.data, horas: e.horas, pct: e.pct, valor: e.horas * r.valorHora * (1 + e.pct / 100) }));
+    return { colaborador_id: c.id, nome: c.nome, funcao: c.funcao, salario: r.salario, base, e50, e100, v50, v100, faltas: r.f, total: base + v50 + v100, ajustes: ajustesColaborador, extrasDias, valorHora: r.valorHora, pct50: s.pct50, pct100: s.pct100 };
   });
   return { inicio, fim, itens, total: itens.reduce((t, i) => t + i.total, 0) };
 }
