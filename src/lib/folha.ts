@@ -1,4 +1,5 @@
 import { addDays, ordenarColaboradores, resumo, type Colaborador, type Horas, type Jornada, type Marcas, type Pontos, type Salarios } from "./frequencia";
+import { ajusteFolhaSchema, type AjusteFolha } from "./ajustes-folha";
 
 // Pagamentos quinzenais: dia 20 paga 1–15 do mês; dia 05 paga 16–fim do mês anterior.
 // Cada pagamento = 50% do salário + horas extras do próprio período.
@@ -34,9 +35,9 @@ export function proximoPagamento(ref: Date): string {
   return datasPagamento(ref, 0, 1)[0] ?? hoje;
 }
 
-export type ItemFolha = { colaborador_id: string; nome: string; funcao: string; salario: number; base: number; e50: number; e100: number; v50: number; v100: number; faltas: number; total: number };
+export type ItemFolha = { colaborador_id: string; nome: string; funcao: string; salario: number; base: number; e50: number; e100: number; v50: number; v100: number; faltas: number; total: number; ajustes?: AjusteFolha[] };
 
-export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios) {
+export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios, ajustes: AjusteFolha[] = []) {
   const { inicio, fim } = periodoPagamento(dataPagamento);
   const dias: Date[] = [];
   const [a = 0, mm = 1, d = 1] = inicio.split("-").map(Number);
@@ -45,10 +46,16 @@ export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Mar
     if (k > fim) break;
     dias.push(dt);
   }
-  const itens: ItemFolha[] = ordenarColaboradores(cols.filter((c) => c.ativo)).map((c) => {
+  const ajustesPagamento = ajustes.map((a) => ajusteFolhaSchema.parse(a)).filter((a) => a.data_pagamento === dataPagamento);
+  const itens: ItemFolha[] = ordenarColaboradores(cols.filter((c) => c.ativo || ajustesPagamento.some((a) => a.colaborador_id === c.id))).map((c) => {
     const r = resumo(c.id, c.funcao, dias, m, h, j, p, s, c.salario);
-    const base = r.salario * PERCENTUAL_QUINZENA;
-    return { colaborador_id: c.id, nome: c.nome, funcao: c.funcao, salario: r.salario, base, e50: r.e50, e100: r.e100, v50: r.v50, v100: r.v100, faltas: r.f, total: base + r.v50 + r.v100 };
+    const base = c.ativo ? r.salario * PERCENTUAL_QUINZENA : 0;
+    const ajustesColaborador = ajustesPagamento.filter((a) => a.colaborador_id === c.id);
+    const e50 = r.e50 + ajustesColaborador.reduce((t, a) => t + a.horas50, 0);
+    const e100 = r.e100 + ajustesColaborador.reduce((t, a) => t + a.horas100, 0);
+    const v50 = e50 * r.valorHora * (1 + s.pct50 / 100);
+    const v100 = e100 * r.valorHora * (1 + s.pct100 / 100);
+    return { colaborador_id: c.id, nome: c.nome, funcao: c.funcao, salario: r.salario, base, e50, e100, v50, v100, faltas: r.f, total: base + v50 + v100, ajustes: ajustesColaborador };
   });
   return { inicio, fim, itens, total: itens.reduce((t, i) => t + i.total, 0) };
 }

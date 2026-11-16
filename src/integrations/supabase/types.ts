@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_extras_folha: {
+        Row: {
+          colaborador_id: string
+          colaborador_nome: string
+          created_at: string
+          data_pagamento: string
+          horas100: number
+          horas50: number
+          id: string
+          motivo: string
+          periodo_fim: string
+          periodo_inicio: string
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          colaborador_nome: string
+          created_at?: string
+          data_pagamento: string
+          horas100?: number
+          horas50?: number
+          id?: string
+          motivo: string
+          periodo_fim: string
+          periodo_inicio: string
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          colaborador_nome?: string
+          created_at?: string
+          data_pagamento?: string
+          horas100?: number
+          horas50?: number
+          id?: string
+          motivo?: string
+          periodo_fim?: string
+          periodo_inicio?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           ativo: boolean
