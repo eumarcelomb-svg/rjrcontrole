@@ -93,6 +93,7 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
       <p className="text-xs text-muted-foreground">Faltas são apenas informadas, sem desconto automático.</p>
       <section className="space-y-3 border-t pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">Ajustes de extras anteriores</h3>{!ver && <Button size="sm" variant="outline" disabled={ocupado || carregando || !!erroCarga || editando !== undefined} onClick={() => setEditando(null)}><Plus />Adicionar extras anteriores</Button>}</div>
+        {!ver && <p className="text-xs text-muted-foreground">Informe somente extras que ainda não foram contabilizadas. O ajuste vale apenas para o pagamento selecionado e não altera a frequência.</p>}
         {!ver && jaFechado && <p className="text-xs text-muted-foreground">Os ajustes serão incluídos no fechamento salvo ao fechar novamente.</p>}
         {!ver && editando !== undefined && <AjusteFolhaForm key={editando?.id ?? "novo"} dataPagamento={data} cols={cols} {...(editando ? { ajuste: editando } : {})} onCancel={() => setEditando(undefined)} onSaved={async () => { await recarregar(); setEditando(undefined); }} />}
         {ajustesVisiveis.length === 0 && <p className="text-sm text-muted-foreground">Nenhum ajuste de extras nesta folha.</p>}

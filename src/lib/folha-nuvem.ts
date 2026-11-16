@@ -37,8 +37,8 @@ export async function listarAjustesFolha(): Promise<AjusteFolha[]> {
 }
 
 export async function salvarAjusteFolha(ajuste: AjusteFolha) {
-  const dados = ajusteFolhaSchema.parse(ajuste);
-  const { error } = await supabase.from("ajustes_extras_folha").upsert(dados, { onConflict: "data_pagamento,colaborador_id,periodo_inicio,periodo_fim" });
+  const { id, ...dados } = ajusteFolhaSchema.parse(ajuste);
+  const { error } = await supabase.from("ajustes_extras_folha").upsert({ ...dados, ...(id ? { id } : {}) }, { onConflict: "data_pagamento,colaborador_id,periodo_inicio,periodo_fim" });
   if (error) throw new Error("Não foi possível salvar o ajuste de extras.");
 }
 
