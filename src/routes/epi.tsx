@@ -9,12 +9,12 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { EpiDialog } from "@/components/epi-dialog";
 import { EntregaEpiDialog } from "@/components/entrega-epi-dialog";
-import { listarControleEpi, excluirEntregaEpi } from "@/lib/entregas-epi.functions";
+import { listarControleEpi, excluirEntregaEpi } from "@/lib/entregas-epi-nuvem";
 import { filtrarEntregasEpi, resumoEntregasEpi, type EntregaEpi } from "@/lib/entregas-epi";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 
-const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi() });
+const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi(), retry: 2 });
 type Filtros = { q?: string | undefined; funcao?: string | undefined; assinatura?: string | undefined; inicio?: string | undefined; fim?: string | undefined };
 
 export const Route = createFileRoute("/epi")({
@@ -25,6 +25,8 @@ export const Route = createFileRoute("/epi")({
     inicio: typeof search['inicio'] === "string" ? search['inicio'] : undefined,
     fim: typeof search['fim'] === "string" ? search['fim'] : undefined,
   }),
+  // Load in the browser, like the attendance sheet, so the page never depends on server rendering.
+  ssr: false,
   loader: ({ context }) => context.queryClient.ensureQueryData(epiQuery),
   head: () => ({ meta: [
     { title: "Controle de EPI — RJR Construção Naval" },
