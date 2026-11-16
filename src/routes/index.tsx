@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
 import { baixarBackup, contarRegistros, criarBackup, lerBackup } from "@/lib/backup";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -457,7 +457,7 @@ function Index() {
         }}
       />
       <SalariosDialog open={salOpen} funcoes={funcoes} valor={salarios} onClose={() => setSalOpen(false)} onSave={(v) => { setSalarios(v); setSalOpen(false); }} />
-      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumos.get(ficha.id) ?? null : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} />
+      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumos.get(ficha.id) ?? null : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} onEditar={(c) => { setFicha(null); setEdit(c); }} onExcluir={(c) => setRemover(c)} />
       <Dialog open={!!remover} onOpenChange={(o) => !o && setRemover(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Excluir colaborador desligado?</DialogTitle></DialogHeader>
@@ -669,7 +669,7 @@ function SalariosDialog({ open, funcoes, valor, onClose, onSave }: { open: boole
   );
 }
 
-function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void }) {
+function FichaDialog({ colab, periodo, r, onClose, onSalarios, onEditar, onExcluir }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void; onEditar: (c: Colaborador) => void; onExcluir: (c: Colaborador) => void }) {
   const L = ({ a, b, c }: { a: string; b: string; c?: string }) => (
     <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="flex flex-wrap gap-x-3 font-mono">{b}{c && <span className="font-semibold">{c}</span>}</span></div>
   );
@@ -708,7 +708,7 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colabo
             <div className="flex justify-between pt-3 text-base font-bold"><span>Total a receber no período</span><span className="font-mono text-primary">{fmtR(r.total)}</span></div>
           </div>
           {!r.salario && <p className="text-xs text-absent">Informe o salário da função para calcular os valores.</p>}
-          <DialogFooter><Button variant="outline" onClick={onSalarios}>Editar salários</Button><Button onClick={onClose}>Fechar</Button></DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">{colab && !colab.ativo && <Button variant="destructive" onClick={() => onExcluir(colab)}><Trash2 /> Excluir</Button>}{colab && <Button variant="outline" onClick={() => onEditar(colab)}><Pencil /> Editar colaborador / salário</Button>}<Button variant="outline" onClick={onSalarios}>Salários por função</Button><Button onClick={onClose}>Fechar</Button></DialogFooter>
         </>)}
       </DialogContent>
     </Dialog>
