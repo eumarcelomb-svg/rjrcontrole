@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { iso, ordenarColaboradores } from "@/lib/frequencia";
 import { entregaEpiSchema, type ColaboradorEpi, type DadosEntregaEpi, type EntregaEpi } from "@/lib/entregas-epi";
-import { salvarEntregaEpi } from "@/lib/entregas-epi.functions";
+import { salvarEntregaEpi } from "@/lib/entregas-epi-nuvem";
 
 export function EntregaEpiDialog({ colaboradores, entrega, onClose, onSaved }: { colaboradores: ColaboradorEpi[]; entrega: EntregaEpi | null; onClose: () => void; onSaved: () => Promise<void> }) {
   const [form, setForm] = useState<DadosEntregaEpi>(() => entrega ?? { colaborador_id: "", equipamento: "", quantidade: 1, ca: "", data_entrega: iso(new Date()), responsavel: "", observacoes: "", assinatura_confirmada: false });

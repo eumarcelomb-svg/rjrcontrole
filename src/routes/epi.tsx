@@ -9,12 +9,12 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { EpiDialog } from "@/components/epi-dialog";
 import { EntregaEpiDialog } from "@/components/entrega-epi-dialog";
-import { listarControleEpi, excluirEntregaEpi } from "@/lib/entregas-epi.functions";
+import { listarControleEpi, excluirEntregaEpi } from "@/lib/entregas-epi-nuvem";
 import { filtrarEntregasEpi, resumoEntregasEpi, type EntregaEpi } from "@/lib/entregas-epi";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 
-const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi() });
+const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi(), retry: 2 });
 type Filtros = { q?: string | undefined; funcao?: string | undefined; assinatura?: string | undefined; inicio?: string | undefined; fim?: string | undefined };
 
 export const Route = createFileRoute("/epi")({
@@ -25,6 +25,8 @@ export const Route = createFileRoute("/epi")({
     inicio: typeof search['inicio'] === "string" ? search['inicio'] : undefined,
     fim: typeof search['fim'] === "string" ? search['fim'] : undefined,
   }),
+  // Load in the browser, like the attendance sheet, so the page never depends on server rendering.
+  ssr: false,
   loader: ({ context }) => context.queryClient.ensureQueryData(epiQuery),
   head: () => ({ meta: [
     { title: "Controle de EPI — RJR Construção Naval" },
@@ -60,7 +62,7 @@ function EpiError({ error, reset }: ErrorComponentProps) {
       setTentando(false);
     }
   }
-  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p><div className="flex flex-wrap gap-2"><Button disabled={tentando} onClick={() => void tentarNovamente()}><RotateCw />{tentando ? "Carregando…" : "Tentar novamente"}</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
+  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p>{error instanceof Error && error.message ? <p className="text-xs text-muted-foreground">Detalhe: {error.message}</p> : null}<div className="flex flex-wrap gap-2"><Button disabled={tentando} onClick={() => void tentarNovamente()}><RotateCw />{tentando ? "Carregando…" : "Tentar novamente"}</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
 }
 
 function ControleEpi() {
