@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { queryOptions, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus, Search, Pencil, Trash2, ShieldCheck, FileText, RotateCw, PackageCheck, Users, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { EntregaEpiDialog } from "@/components/entrega-epi-dialog";
 import { listarControleEpi, excluirEntregaEpi } from "@/lib/entregas-epi.functions";
 import { filtrarEntregasEpi, resumoEntregasEpi, type EntregaEpi } from "@/lib/entregas-epi";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 
 const epiQuery = queryOptions({ queryKey: ["controle-epi"], queryFn: () => listarControleEpi() });
 type Filtros = { q?: string | undefined; funcao?: string | undefined; assinatura?: string | undefined; inicio?: string | undefined; fim?: string | undefined };
@@ -38,9 +39,28 @@ export const Route = createFileRoute("/epi")({
   component: ControleEpi,
 });
 
-function EpiError() {
+function EpiError({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
-  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p><div className="flex gap-2"><Button onClick={() => router.invalidate()}><RotateCw />Tentar novamente</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
+  const queryClient = useQueryClient();
+  const [tentando, setTentando] = useState(false);
+  useEffect(() => {
+    reportLovableError(error, { boundary: "controle_epi" });
+  }, [error]);
+  async function tentarNovamente() {
+    setTentando(true);
+    try {
+      // Clear the failed Query as well as the router boundary: invalidating
+      // only the route can immediately throw the same cached Query error.
+      await queryClient.resetQueries({ queryKey: epiQuery.queryKey, exact: true });
+      await router.invalidate();
+      reset();
+    } catch {
+      toast.error("Não foi possível carregar os dados. Tente novamente.");
+    } finally {
+      setTentando(false);
+    }
+  }
+  return <main className="mx-auto max-w-xl space-y-4 p-6"><h1 className="text-xl font-bold">Controle de EPI indisponível</h1><p role="alert">Não foi possível carregar os dados. Verifique sua conexão.</p><div className="flex flex-wrap gap-2"><Button disabled={tentando} onClick={() => void tentarNovamente()}><RotateCw />{tentando ? "Carregando…" : "Tentar novamente"}</Button><Button variant="outline" asChild><Link to="/">Voltar à frequência</Link></Button></div></main>;
 }
 
 function ControleEpi() {
