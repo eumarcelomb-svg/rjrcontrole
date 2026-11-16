@@ -8,6 +8,7 @@ import { calcularFolha, datasPagamento, proximoPagamento } from "@/lib/folha";
 import { excluirAjusteFolha, listarAjustesFolha, excluirFechamento, listarFechamentos, salvarFechamento, type Fechamento } from "@/lib/folha-nuvem";
 import type { AjusteFolha } from "@/lib/ajustes-folha";
 import { AjusteFolhaForm } from "@/components/ajuste-folha-form";
+import { FolhaPdfActions } from "@/components/folha-pdf-actions";
 
 const br = (s: string) => s.split("-").reverse().join("/");
 
@@ -76,6 +77,7 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
       {carregando && <p className="text-sm text-muted-foreground">Carregando fechamentos e ajustes…</p>}
       {erroCarga && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{erroCarga}</p><Button variant="outline" onClick={() => void recarregar().catch(() => {})}><RotateCw />Tentar novamente</Button></div>}
       {ver && <div className="flex items-center justify-between text-sm"><span>Fechamento salvo de <b>{br(ver.data_pagamento)}</b> · período {br(ver.periodo_inicio)} a {br(ver.periodo_fim)}</span><Button size="sm" variant="outline" onClick={() => setVer(null)}>Voltar</Button></div>}
+      {ver && <FolhaPdfActions key={`${ver.id}-${ver.created_at}`} fechamento={ver} />}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="py-2">Colaborador</th><th className="text-right">50% salário</th><th className="text-right">Extras 50%</th><th className="text-right">Extras 100%</th><th className="text-right">Faltas</th><th className="text-right">Total</th></tr></thead>
