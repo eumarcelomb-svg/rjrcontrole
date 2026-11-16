@@ -8,7 +8,7 @@ const p2 = (n: number) => String(n).padStart(2, "0");
 const ymd = (a: number, m: number, d: number) => `${a}-${p2(m)}-${p2(d)}`;
 
 export function periodoPagamento(dataPagamento: string): { inicio: string; fim: string } {
-  const [a, m, d] = dataPagamento.split("-").map(Number);
+  const [a = 0, m = 0, d = 0] = dataPagamento.split("-").map(Number);
   if (d === 20) return { inicio: ymd(a, m, 1), fim: ymd(a, m, 15) };
   if (d === 5) {
     const pa = m === 1 ? a - 1 : a, pm = m === 1 ? 12 : m - 1;
@@ -39,7 +39,7 @@ export type ItemFolha = { colaborador_id: string; nome: string; funcao: string; 
 export function calcularFolha(dataPagamento: string, cols: Colaborador[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios) {
   const { inicio, fim } = periodoPagamento(dataPagamento);
   const dias: Date[] = [];
-  const [a, mm, d] = inicio.split("-").map(Number);
+  const [a = 0, mm = 1, d = 1] = inicio.split("-").map(Number);
   for (let dt = new Date(a, mm - 1, d); ; dt = addDays(dt, 1)) {
     const k = ymd(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
     if (k > fim) break;
