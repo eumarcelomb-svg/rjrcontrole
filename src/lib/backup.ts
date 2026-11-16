@@ -7,7 +7,7 @@ const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => {
 });
 const minuto = z.number().int().min(0).max(1439);
 const estadoSchema = z.object({
-  cols: z.array(z.object({ id: z.string().uuid(), nome: z.string().trim().min(1), cpf: z.string().regex(/^\d{11}$/), funcao: z.string().min(1), ativo: z.boolean() })),
+  cols: z.array(z.object({ id: z.string().uuid(), nome: z.string().trim().min(1), cpf: z.string().regex(/^\d{11}$/), funcao: z.string().min(1), ativo: z.boolean(), salario: z.number().nonnegative().nullable().optional() })),
   marcas: z.record(z.enum(["P", "F", "J"])),
   horas: z.record(z.number().finite().min(0).max(24)),
   pontos: z.record(z.object({ e: minuto.optional(), s: minuto.optional() })),

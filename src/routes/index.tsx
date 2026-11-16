@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
 import { baixarBackup, contarRegistros, criarBackup, lerBackup } from "@/lib/backup";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -55,6 +55,7 @@ function Index() {
   const [funcao, setFuncao] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false);
   const [edit, setEdit] = useState<Colaborador | null>(null);
+  const [remover, setRemover] = useState<Colaborador | null>(null);
   const [horas, setHoras] = useState<Horas>({});
   const [jornada, setJornada] = useState<Jornada>({ feriados: [] });
   const [pontos, setPontos] = useState<Pontos>({});
@@ -189,7 +190,7 @@ function Index() {
   const total = (id: string, s: Status) => dias.filter((d) => marcas[`${id}|${iso(d)}`] === s).length;
   const totalDia = (dia: string, s: Status) => lista.filter((c) => marcas[`${c.id}|${dia}`] === s).length;
   const report = () => ({ titulo, dias, colaboradores: lista, marcas, horas, jornada, pontos });
-  const resumos = useMemo(() => new Map(cols.map((c) => [c.id, resumo(c.id, c.funcao, dias, marcas, horas, jornada, pontos, salarios)])), [cols, dias, marcas, horas, jornada, pontos, salarios]);
+  const resumos = useMemo(() => new Map(cols.map((c) => [c.id, resumo(c.id, c.funcao, dias, marcas, horas, jornada, pontos, salarios, c.salario)])), [cols, dias, marcas, horas, jornada, pontos, salarios]);
   const somaH = (id: string) => resumos.get(id)?.normais ?? 0;
   const somaE = (id: string) => { const r = resumos.get(id); return r ? r.e50 + r.e100 : 0; };
   const totH = lista.reduce((a, c) => a + somaH(c.id), 0);
@@ -200,6 +201,14 @@ function Index() {
   const salvar = (c: Colaborador) => {
     setCols((cs) => (cs.some((x) => x.id === c.id) ? cs.map((x) => (x.id === c.id ? c : x)) : [...cs, c]));
     setEdit(null);
+  };
+  const excluirColab = (c: Colaborador) => {
+    const fora = <T,>(o: Record<string, T>) => Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith(`${c.id}|`)));
+    setMarcas((m) => fora(m)); setHoras((h) => fora(h)); setPontos((p) => fora(p));
+    setCols((cs) => cs.filter((x) => x.id !== c.id));
+    if (ficha?.id === c.id) setFicha(null);
+    setRemover(null);
+    toast.success(`${c.nome} excluído.`);
   };
 
   const acoes = () => (
@@ -279,7 +288,7 @@ function Index() {
             {funcoes.map((f) => <option key={f}>{f}</option>)}
           </select>
           <label className="flex items-center gap-1 text-sm text-muted-foreground">
-            <input type="checkbox" checked={mostrarInativos} onChange={(e) => setMostrarInativos(e.target.checked)} /> Inativos
+            <input type="checkbox" checked={mostrarInativos} onChange={(e) => setMostrarInativos(e.target.checked)} /> Desligados
           </label>
         </div>
 
@@ -302,7 +311,7 @@ function Index() {
                       key={k}
                       onClick={() => marcarColuna(k)}
                       title="Marcar presença para todos"
-                      className={`${k === hoje ? "" : "hidden md:table-cell "}cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
+                      className={`${k === hoje ? "" : "hidden md:table-cell landscape:table-cell "}cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
@@ -340,7 +349,7 @@ function Index() {
                     const k = iso(d);
                     const v = marcas[`${c.id}|${k}`];
                     return (
-                      <td key={k} className={`${k === hoje ? "" : "hidden md:table-cell "}border-b border-r p-0`}>
+                      <td key={k} className={`${k === hoje ? "" : "hidden md:table-cell landscape:table-cell "}border-b border-r p-0`}>
                         <button
                           disabled={!c.ativo}
                           onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
@@ -363,10 +372,11 @@ function Index() {
                     <Button
                       variant="ghost" size="icon" className="size-7"
                       onClick={() => setCols((cs) => cs.map((x) => (x.id === c.id ? { ...x, ativo: !x.ativo } : x)))}
-                      aria-label={c.ativo ? "Desativar" : "Reativar"} title={c.ativo ? "Desativar" : "Reativar"}
+                      aria-label={c.ativo ? "Desligar" : "Readmitir"} title={c.ativo ? "Desligar" : "Readmitir"}
                     >
                       {c.ativo ? <UserX /> : <UserCheck />}
                     </Button>
+                    {!c.ativo && <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={() => setRemover(c)} aria-label={`Excluir ${c.nome}`} title="Excluir colaborador desligado"><Trash2 /></Button>}
                   </td>
                 </tr>
               ))}
@@ -382,7 +392,7 @@ function Index() {
                   </td>
                   <td className="hidden md:table-cell border-r" colSpan={mensal ? 1 : 2}></td>
                   {dias.map((d) => (
-                    <td key={iso(d)} className={`${iso(d) === hoje ? "" : "hidden md:table-cell "}border-r text-center font-mono`}>{totalDia(iso(d), s) || ""}</td>
+                    <td key={iso(d)} className={`${iso(d) === hoje ? "" : "hidden md:table-cell landscape:table-cell "}border-r text-center font-mono`}>{totalDia(iso(d), s) || ""}</td>
                   ))}
                   <td className="hidden md:table-cell" colSpan={3}></td>
                   <td className="hidden md:table-cell border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
@@ -399,7 +409,7 @@ function Index() {
       <Dialog open={!!backupPronto} onOpenChange={(o) => { if (!o) setBackupPronto(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Backup completo pronto</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Inclui todos os colaboradores, ativos e inativos, registros de todos os períodos, entradas, saídas, horas manuais, feriados e salários. Guarde o arquivo em local seguro: ele contém CPFs e salários.</p>
+          <p className="text-sm text-muted-foreground">Inclui todos os colaboradores, ativos e desligados, registros de todos os períodos, entradas, saídas, horas manuais, feriados e salários. Guarde o arquivo em local seguro: ele contém CPFs e salários.</p>
           <DialogFooter><Button onClick={() => { if (backupPronto) baixarBackup(backupPronto); }}><Download /> Baixar JSON</Button></DialogFooter>
         </DialogContent>
       </Dialog>
@@ -447,7 +457,17 @@ function Index() {
         }}
       />
       <SalariosDialog open={salOpen} funcoes={funcoes} valor={salarios} onClose={() => setSalOpen(false)} onSave={(v) => { setSalarios(v); setSalOpen(false); }} />
-      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumos.get(ficha.id) ?? null : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} />
+      <FichaDialog colab={ficha} periodo={titulo} r={ficha ? resumos.get(ficha.id) ?? null : null} onClose={() => setFicha(null)} onSalarios={() => { setFicha(null); setSalOpen(true); }} onEditar={(c) => { setFicha(null); setEdit(c); }} onExcluir={(c) => setRemover(c)} />
+      <Dialog open={!!remover} onOpenChange={(o) => !o && setRemover(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Excluir colaborador desligado?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground"><strong className="text-foreground">{remover?.nome}</strong> e todas as marcações de presença e horas dele serão apagados definitivamente. O histórico de entregas de EPI é mantido. Faça um backup antes se precisar guardar esses dados.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemover(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => remover && excluirColab(remover)}><Trash2 /> Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ColabDialog colab={edit} funcoes={funcoes} onClose={() => setEdit(null)} onSave={salvar} />
     </div>
   );
@@ -457,7 +477,7 @@ function ColabDialog({ colab, funcoes, onClose, onSave }: { colab: Colaborador |
   const [f, setF] = useState<Colaborador | null>(colab);
   useEffect(() => setF(colab), [colab]);
   if (!f) return null;
-  const valido = f.nome.trim() && f.cpf.replace(/\D/g, "").length >= 9 && f.funcao.trim();
+  const valido = (f.salario == null || (Number.isFinite(f.salario) && f.salario >= 0)) && f.nome.trim() && f.cpf.replace(/\D/g, "").length >= 9 && f.funcao.trim();
   return (
     <Dialog open={!!colab} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
@@ -468,6 +488,10 @@ function ColabDialog({ colab, funcoes, onClose, onSave }: { colab: Colaborador |
           <label className="block text-sm">Função
             <Input list="funcoes" value={f.funcao} onChange={(e) => setF({ ...f, funcao: e.target.value })} />
             <datalist id="funcoes">{funcoes.map((x) => <option key={x} value={x} />)}</datalist>
+          </label>
+          <label className="block text-sm">Salário mensal próprio (R$)
+            <Input inputMode="decimal" placeholder="Vazio = salário da função" value={f.salario ?? ""} onChange={(e) => { const v = e.target.value.replace(",", "."); setF({ ...f, salario: v.trim() === "" ? null : Number(v) }); }} />
+            <span className="text-xs text-muted-foreground">Deixe vazio para usar o salário da função.</span>
           </label>
         </div>
         <DialogFooter>
@@ -645,7 +669,7 @@ function SalariosDialog({ open, funcoes, valor, onClose, onSave }: { open: boole
   );
 }
 
-function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void }) {
+function FichaDialog({ colab, periodo, r, onClose, onSalarios, onEditar, onExcluir }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void; onEditar: (c: Colaborador) => void; onExcluir: (c: Colaborador) => void }) {
   const L = ({ a, b, c }: { a: string; b: string; c?: string }) => (
     <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="flex flex-wrap gap-x-3 font-mono">{b}{c && <span className="font-semibold">{c}</span>}</span></div>
   );
@@ -684,7 +708,7 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios }: { colab: Colabo
             <div className="flex justify-between pt-3 text-base font-bold"><span>Total a receber no período</span><span className="font-mono text-primary">{fmtR(r.total)}</span></div>
           </div>
           {!r.salario && <p className="text-xs text-absent">Informe o salário da função para calcular os valores.</p>}
-          <DialogFooter><Button variant="outline" onClick={onSalarios}>Editar salários</Button><Button onClick={onClose}>Fechar</Button></DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">{colab && !colab.ativo && <Button variant="destructive" onClick={() => onExcluir(colab)}><Trash2 /> Excluir</Button>}{colab && <Button variant="outline" onClick={() => onEditar(colab)}><Pencil /> Editar colaborador / salário</Button>}<Button variant="outline" onClick={onSalarios}>Salários por função</Button><Button onClick={onClose}>Fechar</Button></DialogFooter>
         </>)}
       </DialogContent>
     </Dialog>

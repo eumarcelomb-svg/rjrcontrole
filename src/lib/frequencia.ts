@@ -5,6 +5,8 @@ export interface Colaborador {
   cpf: string;
   funcao: string;
   ativo: boolean;
+  /** Salário próprio; quando vazio usa o salário da função. */
+  salario?: number | null | undefined;
 }
 export type Marcas = Record<string, Status>; // `${id}|${yyyy-mm-dd}`
 
@@ -173,7 +175,7 @@ export const fmtR = (n: number) => n.toLocaleString("pt-BR", { style: "currency"
 
 export interface ExtraDia { data: string; horas: number; pct: number; domingoFeriado: boolean }
 export interface Resumo { extrasDias: ExtraDia[]; normais: number; e50: number; e100: number; p: number; f: number; j: number; valorHora: number; vNormal: number; v50: number; v100: number; total: number; salario: number; pct50: number; pct100: number }
-export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios): Resumo {
+export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: Horas, j: Jornada, p: Pontos, s: Salarios, salarioProprio?: number | null): Resumo {
   let normais = 0, e50 = 0, e100 = 0, P = 0, F = 0, J = 0;
   const extrasDias: ExtraDia[] = [];
   for (const d of dias) {
@@ -184,7 +186,7 @@ export function resumo(id: string, funcao: string, dias: Date[], m: Marcas, h: H
     if (ex > 0) extrasDias.push({ data: iso(d), horas: ex, pct: extra100(d, j) ? s.pct100 : s.pct50, domingoFeriado: extra100(d, j) });
     if (m[k] === "P") P++; else if (m[k] === "F") F++; else if (m[k] === "J") J++;
   }
-  const salario = s.porFuncao[funcao] ?? 0;
+  const salario = salarioProprio ?? s.porFuncao[funcao] ?? 0;
   const valorHora = s.divisor > 0 ? salario / s.divisor : 0;
   const vNormal = normais * valorHora, v50 = e50 * valorHora * (1 + s.pct50 / 100), v100 = e100 * valorHora * (1 + s.pct100 / 100);
   return { extrasDias, normais, e50, e100, p: P, f: F, j: J, valorHora, vNormal, v50, v100, total: vNormal + v50 + v100, salario, pct50: s.pct50, pct100: s.pct100 };

@@ -22,6 +22,7 @@ export type Database = {
           funcao: string
           id: string
           nome: string
+          salario: number | null
           updated_at: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           funcao: string
           id?: string
           nome: string
+          salario?: number | null
           updated_at?: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           funcao?: string
           id?: string
           nome?: string
+          salario?: number | null
           updated_at?: string
         }
         Relationships: []

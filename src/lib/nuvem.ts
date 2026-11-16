@@ -32,7 +32,7 @@ async function lerNuvem(): Promise<Estado> {
     lerTodas("salarios_funcao", "funcao"),
     supabase.from("configuracoes").select("*").eq("id", 1).maybeSingle(),
   ]);
-  const cols = ok(c).map((x) => ({ id: x.id, nome: x.nome, cpf: x.cpf, funcao: x.funcao, ativo: x.ativo }));
+  const cols = ok(c).map((x) => ({ id: x.id, nome: x.nome, cpf: x.cpf, funcao: x.funcao, ativo: x.ativo, salario: x.salario ?? null }));
   const marcas: Marcas = {}, horas: Horas = {}, pontos: Pontos = {};
   for (const x of ok(r)) {
     const k = `${x.colaborador_id}|${x.data}`;
@@ -111,13 +111,18 @@ export async function carregar(): Promise<Estado> {
 export async function sincronizar(antes: Estado, depois: Estado) {
   const js = JSON.stringify;
   const antC = new Map(antes.cols.map((c) => [c.id, c]));
-  const cs = depois.cols.filter((c) => js(antC.get(c.id)) !== js(c)).map((c) => ({ id: c.id, nome: c.nome, cpf: padCpf(c.cpf), funcao: c.funcao, ativo: c.ativo }));
+  const cs = depois.cols.filter((c) => js(antC.get(c.id)) !== js(c)).map((c) => ({ id: c.id, nome: c.nome, cpf: padCpf(c.cpf), funcao: c.funcao, ativo: c.ativo, salario: c.salario ?? null }));
+  const removidos = new Set(antes.cols.filter((c) => !depois.cols.some((x) => x.id === c.id)).map((c) => c.id));
+  if (removidos.size) {
+    ok(await supabase.from("registros_dia").delete().in("colaborador_id", [...removidos]));
+    ok(await supabase.from("colaboradores").delete().in("id", [...removidos]));
+  }
   if (cs.length) ok(await supabase.from("colaboradores").upsert(cs));
 
   const a = paraRegistros(antes), b = paraRegistros(depois);
   const up = [...b].filter(([k, r]) => js(a.get(k)) !== js(r)).map(([, r]) => r);
   if (up.length) ok(await supabase.from("registros_dia").upsert(up, { onConflict: "colaborador_id,data" }));
-  for (const [k, r] of a) if (!b.has(k)) ok(await supabase.from("registros_dia").delete().eq("colaborador_id", r.colaborador_id).eq("data", r.data));
+  for (const [k, r] of a) if (!b.has(k) && !removidos.has(r.colaborador_id)) ok(await supabase.from("registros_dia").delete().eq("colaborador_id", r.colaborador_id).eq("data", r.data));
 
   const fa = new Set(antes.jornada.feriados), fb = new Set(depois.jornada.feriados);
   const novos = [...fb].filter((d) => !fa.has(d)), rem = [...fa].filter((d) => !fb.has(d));
