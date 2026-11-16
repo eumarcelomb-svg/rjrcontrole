@@ -6,7 +6,7 @@ export interface Colaborador {
   funcao: string;
   ativo: boolean;
   /** Salário próprio; quando vazio usa o salário da função. */
-  salario?: number | null;
+  salario?: number | null | undefined;
 }
 export type Marcas = Record<string, Status>; // `${id}|${yyyy-mm-dd}`
 
