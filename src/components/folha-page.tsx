@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Trash2, Plus, Pencil, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fmtH, fmtR, type Colaborador, type Horas, type Jornada, type Marcas, type Pontos, type Salarios } from "@/lib/frequencia";
 import { calcularFolha, datasPagamento, proximoPagamento } from "@/lib/folha";
 import { excluirAjusteFolha, listarAjustesFolha, excluirFechamento, listarFechamentos, salvarFechamento, type Fechamento } from "@/lib/folha-nuvem";
@@ -13,9 +12,9 @@ import { BuscaExtrasFolhaForm } from "@/components/busca-extras-folha-form";
 
 const br = (s: string) => s.split("-").reverse().join("/");
 
-type Props = { cols: Colaborador[]; marcas: Marcas; horas: Horas; jornada: Jornada; pontos: Pontos; salarios: Salarios; onClose: () => void };
+type Props = { cols: Colaborador[]; marcas: Marcas; horas: Horas; jornada: Jornada; pontos: Pontos; salarios: Salarios };
 
-export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, onClose }: Props) {
+export function FolhaPage({ cols, marcas, horas, jornada, pontos, salarios }: Props) {
   const [data, setData] = useState(() => proximoPagamento(new Date()));
   const [hist, setHist] = useState<Fechamento[]>([]);
   const [ocupado, setOcupado] = useState(false);
@@ -61,12 +60,10 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
     finally { setOcupado(false); }
   }
 
-  return <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl">
-      <DialogHeader>
-        <DialogTitle>Fechamento da folha</DialogTitle>
-        <DialogDescription>Dia 20 paga de 01 a 15 · dia 05 paga de 16 ao fim do mês anterior · 50% do salário + horas extras do período</DialogDescription>
-      </DialogHeader>
+  return <div className="space-y-6">
+      <div className="border-b pb-4">
+        <p className="text-sm text-muted-foreground">Dia 20 paga de 01 a 15 · dia 05 paga de 16 ao fim do mês anterior · 50% do salário + horas extras do período</p>
+      </div>
       {!ver && <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm font-medium">Data de pagamento
           <select aria-label="Data de pagamento" disabled={ocupado || editando !== undefined} className="block h-9 rounded-md border bg-background px-2 text-sm" value={data} onChange={(e) => setData(e.target.value)}>
@@ -106,7 +103,7 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
           {!ver && <><Button size="icon" variant="ghost" title="Editar ajuste" aria-label={`Editar ajuste de ${a.colaborador_nome}`} disabled={ocupado || editando !== undefined} onClick={() => setEditando(a)}><Pencil /></Button><Button size="icon" variant="ghost" title="Excluir ajuste" aria-label={`Excluir ajuste de ${a.colaborador_nome}`} disabled={ocupado || editando !== undefined} onClick={() => removerAjuste(a)}><Trash2 /></Button></>}
         </div>)}
       </section>
-      {!ver && <DialogFooter><Button disabled={ocupado || carregando || !!erroCarga || editando !== undefined || folha.itens.length === 0} onClick={fechar}>{jaFechado ? "Fechar novamente" : "Fechar folha"}</Button></DialogFooter>}
+      {!ver && <div className="flex justify-end border-t pt-4"><Button disabled={ocupado || carregando || !!erroCarga || editando !== undefined || folha.itens.length === 0} onClick={fechar}>{jaFechado ? "Fechar novamente" : "Fechar folha"}</Button></div>}
       <div className="space-y-2 border-t pt-3">
         <h3 className="text-sm font-semibold">Folhas fechadas</h3>
         {hist.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma folha fechada ainda.</p>}
@@ -116,6 +113,5 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
           <Button size="icon" variant="ghost" aria-label="Excluir fechamento" onClick={() => excluir(f)}><Trash2 /></Button>
         </div>)}
       </div>
-    </DialogContent>
-  </Dialog>;
+  </div>;
 }
