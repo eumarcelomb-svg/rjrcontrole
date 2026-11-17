@@ -24,3 +24,4 @@
 - Keep historical overtime corrections in payment-scoped records separate from attendance; add only supplemental hours and snapshot their periods, rates and reasons inside the payroll closure so corrections do not recur in later payments.
 - Payroll PDFs must use only saved closure snapshots, including daily overtime amounts and adjustments; legacy snapshots show unsaved dates as unavailable rather than reconstructing from live attendance, and browser generation exposes a separate download action for mobile activation.
 - Bulk historical overtime searches read paginated attendance by date, use the shared summary, and insert daily payment-scoped adjustments atomically after review; skip dates covered by the current payroll, any existing adjustment, or saved closure to prevent double payment.
+- Payroll closing lives on /folha with browser-only paginated attendance loading; flush pending sheet writes before navigation so closing uses saved current records.
