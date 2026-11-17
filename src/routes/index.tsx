@@ -14,7 +14,6 @@ import { exportPdf, exportXlsx } from "@/lib/exportar";
 import { EpiDialog } from "@/components/epi-dialog";
 import { PresencaManualDialog } from "@/components/presenca-manual-dialog";
 import { VtDialog } from "@/components/vt-dialog";
-import { FolhaDialog } from "@/components/folha-dialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,6 +44,7 @@ const WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 function Index() {
+  const navigate = Route.useNavigate();
   const [loaded, setLoaded] = useState(false);
   const [cols, setCols] = useState<Colaborador[]>([]);
   const [marcas, setMarcas] = useState<Marcas>({});
@@ -68,7 +68,6 @@ function Index() {
   const [epiOpen, setEpiOpen] = useState(false);
   const [presencaManualOpen, setPresencaManualOpen] = useState(false);
   const [vtOpen, setVtOpen] = useState(false);
-  const [folhaOpen, setFolhaOpen] = useState(false);
   const [ficha, setFicha] = useState<Colaborador | null>(null);
   const [backupPendente, setBackupPendente] = useState<Estado | null>(null);
   const [backupNome, setBackupNome] = useState("");
@@ -107,6 +106,16 @@ function Index() {
     await fila.current;
     if (antes) await sincronizar(antes, novo);
     ultimo.current = novo;
+  }
+  async function abrirFolha() {
+    setOcupado(true);
+    try {
+      await salvarPendencias();
+      await navigate({ to: "/folha" });
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível abrir a folha. Verifique a conexão e tente novamente.");
+    } finally { setOcupado(false); }
   }
   async function prepararBackup() {
     setOcupado(true);
@@ -218,7 +227,7 @@ function Index() {
       <Button size="sm" variant="secondary" onClick={() => setPontoOpen(true)}><Clock /> Check-in / Check-out</Button>
       <Button variant="outline" size="sm" onClick={() => setCfgOpen(true)}><CalendarX /> Feriados</Button>
       <Button variant="outline" size="sm" onClick={() => setSalOpen(true)}><DollarSign /> Salários</Button>
-      <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setFolhaOpen(true)}><DollarSign /> Fechamento da folha</Button>
+      <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => void abrirFolha()}><DollarSign /> Fechamento da folha</Button>
       <Button variant="outline" size="sm" onClick={() => exportXlsx(report())}><FileSpreadsheet /> Excel</Button>
       <Button variant="outline" size="sm" onClick={() => exportPdf(report(), logo.url)}><FileText /> PDF</Button>
       <Button variant="outline" size="sm" disabled={!loaded || ocupado} onClick={() => setPresencaManualOpen(true)}><FileText /> Presença manual</Button>
@@ -417,7 +426,6 @@ function Index() {
         </DialogContent>
       </Dialog>
       {epiOpen && <EpiDialog colaboradores={cols} onClose={() => setEpiOpen(false)} />}
-      {folhaOpen && <FolhaDialog cols={cols} marcas={marcas} horas={horas} jornada={jornada} pontos={pontos} salarios={salarios} onClose={() => setFolhaOpen(false)} />}
       {vtOpen && <VtDialog colaboradores={cols} onClose={() => setVtOpen(false)} />}
       {presencaManualOpen && <PresencaManualDialog colaboradores={lista} onClose={() => setPresencaManualOpen(false)} />}
       <Dialog open={!!backupPendente} onOpenChange={(o) => { if (!o && !ocupado) setBackupPendente(null); }}>
