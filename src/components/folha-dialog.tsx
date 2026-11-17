@@ -9,6 +9,7 @@ import { excluirAjusteFolha, listarAjustesFolha, excluirFechamento, listarFecham
 import type { AjusteFolha } from "@/lib/ajustes-folha";
 import { AjusteFolhaForm } from "@/components/ajuste-folha-form";
 import { FolhaPdfActions } from "@/components/folha-pdf-actions";
+import { BuscaExtrasFolhaForm } from "@/components/busca-extras-folha-form";
 
 const br = (s: string) => s.split("-").reverse().join("/");
 
@@ -95,9 +96,10 @@ export function FolhaDialog({ cols, marcas, horas, jornada, pontos, salarios, on
       <p className="text-xs text-muted-foreground">Faltas são apenas informadas, sem desconto automático.</p>
       <section className="space-y-3 border-t pt-3">
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold">Ajustes de extras anteriores</h3>{!ver && <Button size="sm" variant="outline" disabled={ocupado || carregando || !!erroCarga || editando !== undefined} onClick={() => setEditando(null)}><Plus />Adicionar extras anteriores</Button>}</div>
-        {!ver && <p className="text-xs text-muted-foreground">Informe somente extras que ainda não foram contabilizadas. O ajuste vale apenas para o pagamento selecionado e não altera a frequência.</p>}
+        {!ver && <p className="text-xs text-muted-foreground">Busque as extras nos registros do intervalo. Valores já incluídos na folha, em ajustes ou em fechamentos não serão adicionados novamente.</p>}
         {!ver && jaFechado && <p className="text-xs text-muted-foreground">Os ajustes serão incluídos no fechamento salvo ao fechar novamente.</p>}
-        {!ver && editando !== undefined && <AjusteFolhaForm key={editando?.id ?? "novo"} dataPagamento={data} cols={cols} {...(editando ? { ajuste: editando } : {})} onCancel={() => setEditando(undefined)} onSaved={async () => { await recarregar(); setEditando(undefined); }} />}
+        {!ver && editando === null && <BuscaExtrasFolhaForm dataPagamento={data} cols={cols} jornada={jornada} salarios={salarios} onCancel={() => setEditando(undefined)} onSaved={async () => { await recarregar(); setEditando(undefined); }} />}
+        {!ver && editando && <AjusteFolhaForm key={editando.id} dataPagamento={data} cols={cols} ajuste={editando} onCancel={() => setEditando(undefined)} onSaved={async () => { await recarregar(); setEditando(undefined); }} />}
         {ajustesVisiveis.length === 0 && <p className="text-sm text-muted-foreground">Nenhum ajuste de extras nesta folha.</p>}
         {ajustesVisiveis.map((a, idx) => <div key={a.id ?? idx} className="flex items-start gap-2 border-b pb-2 text-sm">
           <div className="min-w-0 flex-1"><div className="font-medium">{a.colaborador_nome}</div><div>{br(a.periodo_inicio)} a {br(a.periodo_fim)}</div><div>50%: {fmtH(a.horas50)} · 100%: {fmtH(a.horas100)}</div><p className="break-words text-xs text-muted-foreground">{a.motivo}</p></div>
