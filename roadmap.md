@@ -1,4 +1,4 @@
-- [ ] Transformar o fechamento da folha em página própria, preservar ajustes/histórico/PDFs e verificar navegação no computador e celular.
+- [x] Transformar o fechamento da folha em página própria, preservar ajustes/histórico/PDFs e verificar navegação no computador e celular.
 - [x] Buscar extras por intervalo para todos os colaboradores, revisar e adicionar em lote sem duplicar valores já incluídos; testar cálculo e gravação.
 - [x] Gerar e baixar PDF completo da folha fechada e PDFs individuais com descrição das extras; testar downloads e conferir páginas.
 - [x] Permitir ajustes pontuais de extras anteriores na folha, incluindo 02–08/11 e 09–15/11, preservar frequência e verificar gravação, cálculo e leitura.
