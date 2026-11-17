@@ -8,7 +8,7 @@ const cols = [{ id: outro, nome: "Zélia", cpf: "", funcao: "Montador", ativo: f
 const salarios = { porFuncao: { Montador: 2200 }, divisor: 220, pct50: 50, pct100: 100 };
 const marcas = { [`${id}|2026-11-02`]: "P" as const, [`${outro}|2026-11-08`]: "P" as const };
 const pontos = { [`${id}|2026-11-02`]: { e: 420, s: 1140 } };
-const busca = (pagamento = "2026-12-05", ajustes: AjusteFolha[] = [], fechamentos: Parameters<typeof buscarExtrasPeriodo>[11] = []) => buscarExtrasPeriodo(pagamento, "2026-11-02", "2026-11-08", cols, marcas, {}, { feriados: [] }, pontos, salarios, ajustes, fechamentos);
+const busca = (pagamento = "2026-12-05", ajustes: AjusteFolha[] = [], fechamentos: Parameters<typeof buscarExtrasPeriodo>[10] = []) => buscarExtrasPeriodo(pagamento, "2026-11-02", "2026-11-08", cols, marcas, {}, { feriados: [] }, pontos, salarios, ajustes, fechamentos);
 
 describe("busca coletiva de extras anteriores", () => {
   it("busca todos no intervalo, ordena nomes e separa 50% e 100%, incluindo desligados", () => {
