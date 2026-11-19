@@ -3,12 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
 import { baixarBackup, contarRegistros, criarBackup, lerBackup } from "@/lib/backup";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, Columns3, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import logo from "@/assets/rjr-logo.jpg.asset.json";
-import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, resumo, fmtR, SALARIOS_PADRAO, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
+import { calcPonto, ehFeriado, extrasDia, fimDia, fmtH, horasDia, jornadaDia, loadVisao, resumo, saveVisao, fmtR, SALARIOS_PADRAO, VISAO_PADRAO, type Visao, type Salarios, type Horas, type Jornada, type Ponto, type Pontos } from "@/lib/frequencia";
 import { addDays, fmtCpf, iso, mondayOf, ordenarColaboradores, padCpf, type Colaborador, type Marcas, type Status } from "@/lib/frequencia";
 import { exportPdf, exportXlsx } from "@/lib/exportar";
 import { EpiDialog } from "@/components/epi-dialog";
@@ -52,6 +53,7 @@ function Index() {
   const [ref, setRef] = useState(() => new Date());
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [visao, setVisao] = useState<Visao>(VISAO_PADRAO);
   const [busca, setBusca] = useState("");
   const [funcao, setFuncao] = useState("");
   const [mostrarInativos, setMostrarInativos] = useState(false);
@@ -86,6 +88,7 @@ function Index() {
       })
       .catch((e) => { console.error(e); toast.error("Não foi possível carregar os dados do Supabase. Recarregue a página."); });
   }, []);
+  useEffect(() => { setVisao(loadVisao()); }, []);
   useEffect(() => {
     if (!loaded || ocupado || !ultimo.current) return;
     const novo: Estado = { cols, marcas, horas, jornada, pontos, salarios };
@@ -208,6 +211,14 @@ function Index() {
   const totE = lista.reduce((a, c) => a + somaE(c.id), 0);
   const hoje = iso(new Date());
   const mensal = modo === "mes";
+  const mudarVisao = (muda: Partial<Visao>) => setVisao((v) => { const n = { ...v, ...muda }; saveVisao(n); return n; });
+  /** Semana inteira na tela: só faz sentido na visão semanal. */
+  const semanaAberta = !mensal && visao.semanaInteira;
+  const clsDia = (k: string) => (k === hoje ? "" : semanaAberta ? "table-cell" : "hidden md:table-cell landscape:table-cell");
+  /** Colunas de resumo: no celular aparecem só quando o menu de visualização liga. */
+  const clsTot = (mostra: boolean) => (mostra ? "table-cell" : "hidden md:table-cell");
+  /** Com mais colunas na tela do celular, o nome encurta para as datas caberem. */
+  const nomeCurto = semanaAberta || visao.totais;
 
   const salvar = (c: Colaborador) => {
     setCols((cs) => (cs.some((x) => x.id === c.id) ? cs.map((x) => (x.id === c.id ? c : x)) : [...cs, c]));
@@ -308,8 +319,38 @@ function Index() {
           Expediente de segunda a sexta (07:00–17:00, sexta até 16:00). Sábado, domingo e feriado: todas as horas contam como extra. Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
         </p>}
 
+        <div className="flex md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full justify-between gap-2">
+                <span className="flex items-center gap-2"><Columns3 /> Ver planilha</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {visao.semanaInteira ? "Semana inteira" : "Só o dia de hoje"}
+                  {visao.totais ? " · totais" : ""}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              <DropdownMenuLabel>Visualização no celular</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={visao.semanaInteira}
+                disabled={mensal}
+                onCheckedChange={(v) => mudarVisao({ semanaInteira: v === true })}
+              >
+                Mostrar a semana inteira
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visao.totais}
+                onCheckedChange={(v) => mudarVisao({ totais: v === true })}
+              >
+                Mostrar P, F, J e as horas
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="overflow-auto rounded-md border bg-card">
-          <table className="w-full border-collapse text-sm">
+          <table className={`w-full border-collapse text-sm ${nomeCurto ? "min-w-max md:min-w-0" : ""}`}>
             <thead className="sticky top-0 z-10 bg-muted">
               <tr>
                 <th className="sticky left-0 z-20 md:min-w-60 border-b border-r bg-muted px-2 py-2 text-left">Nome</th>
@@ -323,7 +364,7 @@ function Index() {
                       key={k}
                       onClick={() => marcarColuna(k)}
                       title="Marcar presença para todos"
-                      className={`${k === hoje ? "" : "hidden md:table-cell landscape:table-cell "}cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
+                      className={`${clsDia(k)} cursor-pointer border-b border-r px-1 py-1 text-center text-xs hover:bg-accent ${fds ? "text-muted-foreground/60" : ""} ${k === hoje ? "bg-primary/15" : ""}`}
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
@@ -340,11 +381,11 @@ function Index() {
                     </th>
                   );
                 })}
-                <th className="hidden md:table-cell border-b border-r px-2 text-present">P</th>
-                <th className="hidden md:table-cell border-b border-r px-2 text-absent">F</th>
-                <th className="hidden md:table-cell border-b border-r px-2 text-justified">J</th>
-                <th className="hidden md:table-cell border-b border-r px-2">H. Normais</th>
-                <th className="hidden md:table-cell sticky right-0 z-30 min-w-24 border-b border-l border-r bg-muted px-2 text-primary">H. Extras</th>
+                <th className={`${clsTot(visao.totais)} border-b border-r px-2 text-present`}>P</th>
+                <th className={`${clsTot(visao.totais)} border-b border-r px-2 text-absent`}>F</th>
+                <th className={`${clsTot(visao.totais)} border-b border-r px-2 text-justified`}>J</th>
+                <th className={`${clsTot(visao.totais)} min-w-16 border-b border-r px-2`}>H. Normais</th>
+                <th className={`${clsTot(visao.totais)} sticky right-0 z-30 min-w-24 border-b border-l border-r bg-muted px-2 text-primary`}>H. Extras</th>
                 <th className="hidden md:table-cell border-b px-2"></th>
               </tr>
             </thead>
@@ -352,7 +393,7 @@ function Index() {
               {lista.map((c) => (
                 <tr key={c.id} className={`hover:bg-accent/40 ${c.ativo ? "" : "opacity-50"}`}>
                   <td className="sticky left-0 border-b border-r bg-card px-2 py-1 font-medium">
-                    <button className="text-left hover:text-primary hover:underline" onClick={() => setFicha(c)}>{c.nome}</button>
+                    <button className={`text-left hover:text-primary hover:underline ${nomeCurto ? "block max-w-24 truncate" : ""}`} onClick={() => setFicha(c)}>{c.nome}</button>
                     {mensal && <div className="font-mono text-[11px] text-muted-foreground">{fmtCpf(c.cpf)}</div>}
                   </td>
                   {!mensal && <td className="hidden md:table-cell whitespace-nowrap border-b border-r px-2 font-mono text-xs">{fmtCpf(c.cpf)}</td>}
@@ -361,24 +402,24 @@ function Index() {
                     const k = iso(d);
                     const v = marcas[`${c.id}|${k}`];
                     return (
-                      <td key={k} className={`${k === hoje ? "" : "hidden md:table-cell landscape:table-cell "}border-b border-r p-0`}>
+                      <td key={k} className={`${clsDia(k)} border-b border-r p-0`}>
                         <button
                           disabled={!c.ativo}
                           onClick={(e) => e.detail === 1 && setMarca(c.id, k, NEXT[v ?? ""])}
                           onDoubleClick={() => (setMarca(c.id, k, PREV[v ?? ""]), setHoraEdit({ k: `${c.id}|${k}`, d, nome: c.nome }))}
                           onContextMenu={(e) => { e.preventDefault(); setMarca(c.id, k, undefined); }}
-                          className={`min-h-8 w-full py-0.5 font-mono text-sm font-semibold ${mensal ? "min-w-7" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
+                          className={`min-h-8 w-full py-0.5 font-mono text-sm font-semibold ${mensal ? "min-w-7" : semanaAberta ? "min-w-8" : "min-w-14"} ${v ? CELL[v] : "hover:bg-accent"}`}
                         >
                           <div className="leading-none">{v ?? ""}</div>
                         </button>
                       </td>
                     );
                   })}
-                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-present">{total(c.id, "P")}</td>
-                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-absent">{total(c.id, "F")}</td>
-                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono text-justified">{total(c.id, "J")}</td>
-                  <td className="hidden md:table-cell border-b border-r px-2 text-center font-mono">{fmtH(somaH(c.id))}</td>
-                  <td className="hidden md:table-cell sticky right-0 z-20 min-w-24 border-b border-l border-r bg-card px-2 text-center font-mono font-bold text-primary">{fmtH(somaE(c.id))}</td>
+                  <td className={`${clsTot(visao.totais)} border-b border-r px-2 text-center font-mono text-present`}>{total(c.id, "P")}</td>
+                  <td className={`${clsTot(visao.totais)} border-b border-r px-2 text-center font-mono text-absent`}>{total(c.id, "F")}</td>
+                  <td className={`${clsTot(visao.totais)} border-b border-r px-2 text-center font-mono text-justified`}>{total(c.id, "J")}</td>
+                  <td className={`${clsTot(visao.totais)} border-b border-r px-2 text-center font-mono`}>{fmtH(somaH(c.id))}</td>
+                  <td className={`${clsTot(visao.totais)} sticky right-0 z-20 min-w-24 border-b border-l border-r bg-card px-2 text-center font-mono font-bold text-primary`}>{fmtH(somaE(c.id))}</td>
                   <td className="hidden md:table-cell whitespace-nowrap border-b px-1">
                     <Button variant="ghost" size="icon" className="size-7" onClick={() => setEdit(c)} aria-label="Editar"><Pencil /></Button>
                     <Button
@@ -400,15 +441,15 @@ function Index() {
               {(["P", "F", "J"] as Status[]).map((s) => (
                 <tr key={s}>
                   <td className="sticky left-0 border-r bg-muted px-2 py-1 font-semibold" colSpan={1}>
-                    Total {s === "P" ? "presenças" : s === "F" ? "faltas" : "justificadas"}
+                    <span className={nomeCurto ? "block max-w-24 truncate" : ""}>Total {s === "P" ? "presenças" : s === "F" ? "faltas" : "justificadas"}</span>
                   </td>
                   <td className="hidden md:table-cell border-r" colSpan={mensal ? 1 : 2}></td>
                   {dias.map((d) => (
-                    <td key={iso(d)} className={`${iso(d) === hoje ? "" : "hidden md:table-cell landscape:table-cell "}border-r text-center font-mono`}>{totalDia(iso(d), s) || ""}</td>
+                    <td key={iso(d)} className={`${clsDia(iso(d))} border-r text-center font-mono`}>{totalDia(iso(d), s) || ""}</td>
                   ))}
-                  <td className="hidden md:table-cell" colSpan={3}></td>
-                  <td className="hidden md:table-cell border-r text-center font-mono font-semibold">{s === "P" ? fmtH(totH) : ""}</td>
-                  <td className="hidden md:table-cell sticky right-0 z-20 min-w-24 border-l border-r bg-muted text-center font-mono font-bold text-primary">{s === "P" ? fmtH(totE) : ""}</td>
+                  <td className={clsTot(visao.totais)} colSpan={3}></td>
+                  <td className={`${clsTot(visao.totais)} border-r text-center font-mono font-semibold`}>{s === "P" ? fmtH(totH) : ""}</td>
+                  <td className={`${clsTot(visao.totais)} sticky right-0 z-20 min-w-24 border-l border-r bg-muted text-center font-mono font-bold text-primary`}>{s === "P" ? fmtH(totE) : ""}</td>
                   <td className="hidden md:table-cell"></td>
                 </tr>
               ))}

@@ -169,6 +169,20 @@ const KEY_S = "rjr-freq-salarios";
 export const SALARIOS_PADRAO: Salarios = { porFuncao: {}, divisor: 220, pct50: 50, pct100: 100 };
 export const loadSalarios = (): Salarios => ({ ...SALARIOS_PADRAO, ...JSON.parse(localStorage.getItem(KEY_S) ?? "{}") });
 export const saveSalarios = (s: Salarios) => localStorage.setItem(KEY_S, JSON.stringify(s));
+
+/** Preferências de visualização da planilha, gravadas por aparelho (ex.: celular). */
+export interface Visao { semanaInteira: boolean; totais: boolean }
+const KEY_V = "rjr-freq-visao";
+export const VISAO_PADRAO: Visao = { semanaInteira: false, totais: false };
+export const loadVisao = (): Visao => {
+  let v: Record<string, unknown> = {};
+  try { v = JSON.parse(localStorage.getItem(KEY_V) ?? "{}"); } catch { v = {}; }
+  return {
+    semanaInteira: typeof v["semanaInteira"] === "boolean" ? v["semanaInteira"] : VISAO_PADRAO.semanaInteira,
+    totais: typeof v["totais"] === "boolean" ? v["totais"] : VISAO_PADRAO.totais,
+  };
+};
+export const saveVisao = (v: Visao) => localStorage.setItem(KEY_V, JSON.stringify(v));
 /** Domingo e feriado pagam o percentual maior; dias úteis e sábado, o menor. */
 export const extra100 = (d: Date, j: Jornada) => d.getDay() === 0 || ehFeriado(d, j);
 export const fmtR = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
