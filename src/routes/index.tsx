@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { carregar, sincronizar, restaurarBackup, type Estado } from "@/lib/nuvem";
 import { baixarBackup, contarRegistros, criarBackup, lerBackup } from "@/lib/backup";
-import { ChevronLeft, ChevronRight, CalendarX, Clock, Columns3, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarX, Clock, Columns3, Copy, DollarSign, FileSpreadsheet, LogIn, LogOut, FileText, Pencil, Plus, Menu, Info, X, Search, UserX, UserCheck, Download, Upload, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -538,6 +538,9 @@ function ColabDialog({ colab, funcoes, onClose, onSave }: { colab: Colaborador |
         <div className="space-y-3">
           <label className="block text-sm">Nome<Input value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} /></label>
           <label className="block text-sm">CPF<Input value={f.cpf} inputMode="numeric" onChange={(e) => setF({ ...f, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) })} /></label>
+          <label className="block text-sm">Chave Pix
+            <Input maxLength={254} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" value={f.chave_pix ?? ""} onChange={(e) => setF({ ...f, chave_pix: e.target.value })} />
+          </label>
           <label className="block text-sm">Função
             <Input list="funcoes" value={f.funcao} onChange={(e) => setF({ ...f, funcao: e.target.value })} />
             <datalist id="funcoes">{funcoes.map((x) => <option key={x} value={x} />)}</datalist>
@@ -549,7 +552,7 @@ function ColabDialog({ colab, funcoes, onClose, onSave }: { colab: Colaborador |
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button disabled={!valido} onClick={() => onSave({ ...f, nome: f.nome.trim(), funcao: f.funcao.trim(), cpf: padCpf(f.cpf) })}>Salvar</Button>
+          <Button disabled={!valido} onClick={() => onSave({ ...f, nome: f.nome.trim(), funcao: f.funcao.trim(), cpf: padCpf(f.cpf), chave_pix: f.chave_pix?.trim() || null })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -723,6 +726,19 @@ function SalariosDialog({ open, funcoes, valor, onClose, onSave }: { open: boole
 }
 
 function FichaDialog({ colab, periodo, r, onClose, onSalarios, onEditar, onExcluir }: { colab: Colaborador | null; periodo: string; r: ReturnType<typeof resumo> | null; onClose: () => void; onSalarios: () => void; onEditar: (c: Colaborador) => void; onExcluir: (c: Colaborador) => void }) {
+  const pixInput = useRef<HTMLInputElement>(null);
+  const copiarPix = async () => {
+    const chave = colab?.chave_pix?.trim();
+    if (!chave) return;
+    try {
+      await navigator.clipboard.writeText(chave);
+      toast.success("Chave Pix copiada.");
+    } catch {
+      pixInput.current?.focus();
+      pixInput.current?.select();
+      toast.error("Não foi possível copiar automaticamente. Copie a chave selecionada.");
+    }
+  };
   const L = ({ a, b, c }: { a: string; b: string; c?: string }) => (
     <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-b py-1.5 text-sm"><span className="text-muted-foreground">{a}</span><span className="flex flex-wrap gap-x-3 font-mono">{b}{c && <span className="font-semibold">{c}</span>}</span></div>
   );
@@ -732,6 +748,15 @@ function FichaDialog({ colab, periodo, r, onClose, onSalarios, onEditar, onExclu
         {colab && r && (<>
           <DialogHeader><DialogTitle>{colab.nome}</DialogTitle></DialogHeader>
           <p className="text-xs text-muted-foreground">{fmtCpf(colab.cpf)} · {colab.funcao} · {periodo}</p>
+          <div className="space-y-1.5">
+            <label htmlFor="perfil-chave-pix" className="text-sm font-medium">Chave Pix</label>
+            {colab.chave_pix ? (
+              <div className="flex min-w-0 gap-2">
+                <Input ref={pixInput} id="perfil-chave-pix" className="min-w-0 font-mono" value={colab.chave_pix} readOnly onFocus={(e) => e.currentTarget.select()} />
+                <Button variant="outline" size="icon" className="shrink-0" aria-label="Copiar chave Pix" title="Copiar chave Pix" onClick={copiarPix}><Copy /></Button>
+              </div>
+            ) : <p className="text-sm text-muted-foreground">Não informada</p>}
+          </div>
           <div className="flex items-center justify-between gap-3 border-y py-3 text-primary">
             <span className="font-semibold">Total de horas extras</span>
             <span className="font-mono text-2xl font-bold">{fmtH(r.e50 + r.e100)}</span>

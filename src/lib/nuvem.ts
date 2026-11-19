@@ -32,7 +32,7 @@ async function lerNuvem(): Promise<Estado> {
     lerTodas("salarios_funcao", "funcao"),
     supabase.from("configuracoes").select("*").eq("id", 1).maybeSingle(),
   ]);
-  const cols = ok(c).map((x) => ({ id: x.id, nome: x.nome, cpf: x.cpf, funcao: x.funcao, ativo: x.ativo, salario: x.salario ?? null }));
+  const cols = ok(c).map((x) => ({ id: x.id, nome: x.nome, cpf: x.cpf, funcao: x.funcao, ativo: x.ativo, salario: x.salario ?? null, chave_pix: x.chave_pix ?? null }));
   const marcas: Marcas = {}, horas: Horas = {}, pontos: Pontos = {};
   for (const x of ok(r)) {
     const k = `${x.colaborador_id}|${x.data}`;
@@ -83,7 +83,7 @@ async function migrarNavegador() {
   for (const c of local.colaboradores) {
     const cpf = padCpf(c.cpf);
     let id = porCpf.get(cpf);
-    const row = { nome: c.nome, cpf, funcao: c.funcao, ativo: c.ativo };
+    const row = { nome: c.nome, cpf, funcao: c.funcao, ativo: c.ativo, ...(c.chave_pix !== undefined ? { chave_pix: c.chave_pix?.trim() || null } : {}) };
     if (id) ok(await supabase.from("colaboradores").update(row).eq("id", id));
     else { id = ok(await supabase.from("colaboradores").insert(row).select("id").single()).id; porCpf.set(cpf, id); }
     mapa.set(c.id, id);
@@ -111,7 +111,7 @@ export async function carregar(): Promise<Estado> {
 export async function sincronizar(antes: Estado, depois: Estado) {
   const js = JSON.stringify;
   const antC = new Map(antes.cols.map((c) => [c.id, c]));
-  const cs = depois.cols.filter((c) => js(antC.get(c.id)) !== js(c)).map((c) => ({ id: c.id, nome: c.nome, cpf: padCpf(c.cpf), funcao: c.funcao, ativo: c.ativo, salario: c.salario ?? null }));
+  const cs = depois.cols.filter((c) => js(antC.get(c.id)) !== js(c)).map((c) => ({ id: c.id, nome: c.nome, cpf: padCpf(c.cpf), funcao: c.funcao, ativo: c.ativo, salario: c.salario ?? null, chave_pix: c.chave_pix?.trim() || null }));
   const removidos = new Set(antes.cols.filter((c) => !depois.cols.some((x) => x.id === c.id)).map((c) => c.id));
   if (removidos.size) {
     ok(await supabase.from("registros_dia").delete().in("colaborador_id", [...removidos]));

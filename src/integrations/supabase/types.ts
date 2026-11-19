@@ -59,6 +59,7 @@ export type Database = {
       colaboradores: {
         Row: {
           ativo: boolean
+          chave_pix: string | null
           cpf: string
           created_at: string
           funcao: string
@@ -69,6 +70,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          chave_pix?: string | null
           cpf: string
           created_at?: string
           funcao: string
@@ -79,6 +81,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          chave_pix?: string | null
           cpf?: string
           created_at?: string
           funcao?: string

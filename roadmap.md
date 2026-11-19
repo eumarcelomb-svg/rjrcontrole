@@ -1,3 +1,4 @@
+- [x] Adicionar chave Pix editável e copiável no perfil, preservar nos backups e verificar gravação e cópia no celular e computador.
 - [x] Transformar o fechamento da folha em página própria, preservar ajustes/histórico/PDFs e verificar navegação no computador e celular.
 - [x] Buscar extras por intervalo para todos os colaboradores, revisar e adicionar em lote sem duplicar valores já incluídos; testar cálculo e gravação.
 - [x] Gerar e baixar PDF completo da folha fechada e PDFs individuais com descrição das extras; testar downloads e conferir páginas.

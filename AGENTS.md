@@ -26,3 +26,4 @@
 - Bulk historical overtime searches read paginated attendance by date, use the shared summary, and insert daily payment-scoped adjustments atomically after review; skip dates covered by the current payroll, any existing adjustment, or saved closure to prevent double payment.
 - Payroll closing lives on /folha with browser-only paginated attendance loading; flush pending sheet writes before navigation so closing uses saved current records.
 - Keep mobile spreadsheet column visibility behind a per-device persisted view preference (whole week, summary columns) so narrow screens stay readable, with the desktop table unchanged.
+- Keep optional employee payment keys in the employee record, browser/cloud sync and transactional JSON restore; copy the stored key verbatim so payment identifiers are not reformatted.

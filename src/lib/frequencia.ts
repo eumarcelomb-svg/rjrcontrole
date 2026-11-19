@@ -7,6 +7,8 @@ export interface Colaborador {
   ativo: boolean;
   /** Salário próprio; quando vazio usa o salário da função. */
   salario?: number | null | undefined;
+  /** Chave Pix opcional para copiar no perfil do colaborador. */
+  chave_pix?: string | null | undefined;
 }
 export type Marcas = Record<string, Status>; // `${id}|${yyyy-mm-dd}`
 

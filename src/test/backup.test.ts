@@ -11,6 +11,15 @@ const estado: Estado = {
   salarios: { porFuncao: { Montador: 2200 }, divisor: 220, pct50: 50, pct100: 100 },
 };
 describe("Backup JSON completo", () => {
+  it("preserva a chave Pix de cada colaborador", () => {
+    const comPix: Estado = { ...estado, cols: [{ ...estado.cols[0], id, nome: "João", cpf: "00000000001", funcao: "Montador", ativo: false, chave_pix: "pagamento@example.com" }] };
+    expect(lerBackup(criarBackup(comPix)).cols[0]?.chave_pix).toBe("pagamento@example.com");
+  });
+  it("aceita backups anteriores sem chave Pix e a remoção de uma chave", () => {
+    expect(lerBackup(criarBackup(estado)).cols[0]?.chave_pix).toBeUndefined();
+    const semPix: Estado = { ...estado, cols: estado.cols.map((c) => ({ ...c, chave_pix: null })) };
+    expect(lerBackup(criarBackup(semPix)).cols[0]?.chave_pix).toBeNull();
+  });
   it("restaura colaboradores inativos e registros com ponto parcial sem perder horas manuais", () => {
     expect(lerBackup(criarBackup(estado))).toEqual(estado);
     expect(lerBackup(criarBackup(estado)).horas[k]).toBe(9);
