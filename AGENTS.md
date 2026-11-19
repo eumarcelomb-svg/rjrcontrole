@@ -25,3 +25,4 @@
 - Payroll PDFs must use only saved closure snapshots, including daily overtime amounts and adjustments; legacy snapshots show unsaved dates as unavailable rather than reconstructing from live attendance, and browser generation exposes a separate download action for mobile activation.
 - Bulk historical overtime searches read paginated attendance by date, use the shared summary, and insert daily payment-scoped adjustments atomically after review; skip dates covered by the current payroll, any existing adjustment, or saved closure to prevent double payment.
 - Payroll closing lives on /folha with browser-only paginated attendance loading; flush pending sheet writes before navigation so closing uses saved current records.
+- Keep mobile spreadsheet column visibility behind a per-device persisted view preference (whole week, summary columns) so narrow screens stay readable, with the desktop table unchanged.
