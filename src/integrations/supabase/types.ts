@@ -285,6 +285,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aplicar_recalculo_sabados_rjr: {
+        Args: { ajustes: Json; folhas: Json }
+        Returns: undefined
+      }
       restaurar_backup_rjr: { Args: { backup: Json }; Returns: undefined }
     }
     Enums: {
