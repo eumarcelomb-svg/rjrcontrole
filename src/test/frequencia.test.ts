@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcPonto, extrasDia, horasDia, ordenarColaboradores, resumo, SALARIOS_PADRAO } from "@/lib/frequencia";
+import { calcPonto, extrasDia, horasDia, jornadaDia, ordenarColaboradores, resumo, SALARIOS_PADRAO } from "@/lib/frequencia";
 
 const segunda = new Date(2026, 9, 12);
 const sexta = new Date(2026, 9, 16);
@@ -28,7 +28,7 @@ describe("Horas extras RJR", () => {
     expect(r.e50).toBe(3);
     expect(r.normais).toBe(8);
   });
-  it.each([sabado, domingo])("presença sem horários no fim de semana gera 9 horas extras: %s", (dia) => {
+  it.each([domingo])("presença sem horários no domingo gera 9 horas extras: %s", (dia) => {
     const key = "c1|dia";
     expect(horasDia(key, dia, { [key]: "P" }, {}, jornada)).toBe(9);
     expect(extrasDia(key, dia, { [key]: "P" }, {}, jornada)).toBe(9);
@@ -43,10 +43,10 @@ describe("Horas extras RJR", () => {
     const r = resumo("c1", "Montador", [sabado, domingo],
       { "c1|2026-10-17": "P", "c1|2026-10-18": "P" }, {}, jornada, {},
       { ...SALARIOS_PADRAO, porFuncao: { Montador: 2200 } });
-    expect(r.normais).toBe(0);
-    expect(r.e50).toBe(9);
+    expect(r.normais).toBe(5);
+    expect(r.e50).toBe(0);
     expect(r.e100).toBe(9);
-    expect(r.total).toBe(315);
+    expect(r.total).toBe(230);
   });
   it("mantém as horas manuais e o ponto completo acima da presença padrão de domingo", () => {
     const key = "c1|2026-10-18";
@@ -71,7 +71,7 @@ describe("Horas extras RJR", () => {
   it("conta entrada às 06:30 como 30 minutos extras", () => {
     expect(calcPonto({ e: 390, s: 1020 }, segunda, jornada)).toEqual({ h: 9.5, e: 0.5 });
   });
-  it.each([sabado, domingo, segunda])("desconta almoço das extras em fins de semana e feriados: %s", (dia) => {
+  it.each([domingo, segunda])("desconta almoço das extras em domingos e feriados: %s", (dia) => {
     const cfg = { feriados: ["2026-10-12"] };
     expect(calcPonto({ e: 420, s: 1020 }, dia, cfg)).toEqual({ h: 9, e: 9 });
   });
@@ -84,14 +84,43 @@ describe("Horas extras RJR", () => {
   it("usa o total manual enquanto o check-out não foi informado", () => {
     const key = "c1|2026-10-17";
     expect(horasDia(key, sabado, { [key]: "P" }, { [key]: 9 }, jornada, { [key]: { e: 420 } })).toBe(9);
-    expect(extrasDia(key, sabado, { [key]: "P" }, { [key]: 9 }, jornada, { [key]: { e: 420 } })).toBe(9);
+    expect(extrasDia(key, sabado, { [key]: "P" }, { [key]: 9 }, jornada, { [key]: { e: 420 } })).toBe(4);
   });
   it("o ponto completo substitui o total manual e inclui extras no valor a receber", () => {
     const r = resumo("c1", "Montador", [sabado], {}, { "c1|2026-10-17": 12 }, jornada,
       { "c1|2026-10-17": { e: 420, s: 1020 } }, { ...SALARIOS_PADRAO, porFuncao: { Montador: 2200 } });
+    expect(r.normais).toBe(5);
+    expect(r.e50).toBe(4);
+    expect(r.total).toBe(110);
+  });
+  it("sábado 07:00–12:00 conta cinco horas normais sem extra nem almoço", () => {
+    expect(jornadaDia(sabado, jornada)).toBe(5);
+    expect(calcPonto({ e: 420, s: 720 }, sabado, jornada)).toEqual({ h: 5, e: 0 });
+  });
+  it("sábado após 12:00 conta extra de 50% com o dia identificado", () => {
+    const k = "c1|2026-10-17";
+    const r = resumo("c1", "Montador", [sabado], { [k]: "P" }, {}, jornada, { [k]: { e: 720, s: 840 } }, { ...SALARIOS_PADRAO, porFuncao: { Montador: 2200 } });
     expect(r.normais).toBe(0);
-    expect(r.e50).toBe(9);
-    expect(r.total).toBe(135);
+    expect(r.e50).toBe(2);
+    expect(r.v50).toBe(30);
+    expect(r.extrasDias).toEqual([{ data: "2026-10-17", horas: 2, pct: 50, domingoFeriado: false }]);
+  });
+  it("sábado 07:00–17:00 desconta almoço das extras e preserva manhã normal", () => {
+    expect(calcPonto({ e: 420, s: 1020 }, sabado, jornada)).toEqual({ h: 9, e: 4 });
+  });
+  it("presença sem horários no sábado presume somente 07:00–12:00", () => {
+    expect(horasDia("c1|dia", sabado, { "c1|dia": "P" }, {}, jornada)).toBe(5);
+    expect(extrasDia("c1|dia", sabado, { "c1|dia": "P" }, {}, jornada)).toBe(0);
+  });
+  it("sábado feriado continua integralmente extra de 100%", () => {
+    const k = "c1|2026-10-17";
+    const r = resumo("c1", "Montador", [sabado], { [k]: "P" }, {}, { feriados: ["2026-10-17"] }, { [k]: { e: 420, s: 720 } }, SALARIOS_PADRAO);
+    expect(r.normais).toBe(0);
+    expect(r.e100).toBe(5);
+    expect(r.e50).toBe(0);
+  });
+  it("saída parcial de sábado às 14h presume 07h e calcula 1h extra após almoço", () => {
+    expect(extrasDia("c1|dia", sabado, { "c1|dia": "P" }, {}, jornada, { "c1|dia": { s: 840 } })).toBe(1);
   });
 });
 describe("Ponto parcial e identificação das extras", () => {

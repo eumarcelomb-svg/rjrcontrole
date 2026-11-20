@@ -316,7 +316,7 @@ function Index() {
         </div>
 
         {infoOpen && <p className="rounded-md border bg-card p-3 text-xs text-muted-foreground">
-          Expediente de segunda a sexta (07:00–17:00, sexta até 16:00). Sábado, domingo e feriado: todas as horas contam como extra. Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
+          Expediente 07:00–17:00 de segunda a quinta, sexta até 16:00 e sábado até 12:00. Após o expediente: extra de 50%. Domingos e feriados: todas as horas extras de 100%. Clique na célula para alternar: vazio → <b className="text-present">P</b> Presença → <b className="text-absent">F</b> Falta → <b className="text-justified">J</b> Justificada → vazio. Botão direito limpa. Duplo clique informa entrada e saída (ou o total de horas) do dia. Clique no dia para marcar presença em todos.
         </p>}
 
         <div className="flex md:hidden">
@@ -368,7 +368,7 @@ function Index() {
                     >
                       <div>{WD[d.getDay()]}</div>
                       <div className="font-mono">{String(d.getDate()).padStart(2, "0")}</div>
-                      {ehFeriado(d, jornada) ? <div className="text-[9px] text-primary">Feriado</div> : fds && <div className="text-[9px] text-primary">Extra</div>}
+                      {ehFeriado(d, jornada) ? <div className="text-[9px] text-primary">Feriado</div> : d.getDay() === 6 ? <div className="text-[9px] text-primary">50% após 12h</div> : d.getDay() === 0 && <div className="text-[9px] text-primary">Extra</div>}
                       {(() => {
                         if (fds || k > hoje) return null;
                         const faltam = cols.filter((c) => c.ativo && !marcas[`${c.id}|${k}`]).length;
@@ -635,7 +635,7 @@ function PontoDialog({ open, colaboradores, pontos, cfg, onClose, onMarcar }: { 
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Check-in / Check-out — {agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })} {hm(agora.getHours() * 60 + agora.getMinutes())}</DialogTitle></DialogHeader>
         <p className="text-xs text-muted-foreground">
-          {fim === null ? "Sábado, domingo ou feriado: todas as horas contam como extra." : `Expediente 07:00–${hm(fim)}. Entrada a partir de 06:45 e saída a partir de ${hm(fim - 15)} contam como horário normal, sem extra.`}
+          {fim === null ? "Domingo ou feriado: todas as horas contam como extra de 100%." : `Expediente 07:00–${hm(fim)}; depois, extra de 50%. Entrada a partir de 06:45 e saída a partir de ${hm(fim - 15)} contam como horário normal, sem extra.`}
         </p>
         <Input placeholder="Buscar nome ou CPF" value={q} onChange={(x) => setQ(x.target.value)} />
         <div className="max-h-[55vh] divide-y overflow-auto rounded-md border">
@@ -669,7 +669,7 @@ function FeriadosDialog({ open, jornada, onClose, onSave }: { open: boolean; jor
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Feriados</DialogTitle></DialogHeader>
-        <p className="text-sm text-muted-foreground">Em feriados, sábados e domingos todas as horas trabalhadas contam como hora extra.</p>
+        <p className="text-sm text-muted-foreground">Domingos e feriados: todas as horas são extras de 100%, inclusive quando o feriado cai no sábado. Nos demais sábados, horas normais até 12h e extras de 50% depois.</p>
         <div className="flex gap-2">
           <Input type="date" value={d} onChange={(e) => setD(e.target.value)} />
           <Button variant="outline" disabled={!d} onClick={() => { if (!lista.includes(d)) setLista([...lista, d].sort()); setD(""); }}><Plus /> Adicionar</Button>

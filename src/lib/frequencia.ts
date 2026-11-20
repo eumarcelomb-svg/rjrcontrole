@@ -120,13 +120,14 @@ export const ALMOCO = 60; // minutos de almoço
 export const LIMITE_ALMOCO = 6 * 60;
 const almoco = (min: number) => (min > LIMITE_ALMOCO ? ALMOCO : 0);
 export const ehFeriado = (d: Date, j: Jornada) => j.feriados.includes(iso(d));
-/** Fim do expediente (min) ou null quando o dia todo é hora extra (sáb, dom, feriado). */
+/** Fim do expediente (min); domingo e feriado são integralmente extras. */
 export const fimDia = (d: Date, j: Jornada): number | null => {
   const w = d.getDay();
-  if (w === 0 || w === 6 || ehFeriado(d, j)) return null;
+  if (w === 0 || ehFeriado(d, j)) return null;
+  if (w === 6) return 12 * 60;
   return w === 5 ? 16 * 60 : 17 * 60;
 };
-export const jornadaDia = (d: Date, j: Jornada) => { const f = fimDia(d, j); return f === null ? 0 : (f - INICIO) / 60 - ALMOCO / 60; };
+export const jornadaDia = (d: Date, j: Jornada) => { const f = fimDia(d, j); return f === null ? 0 : (f - INICIO - almoco(f - INICIO)) / 60; };
 /** Calcula horas e extras a partir do ponto, aplicando tolerância de 15 min antes da entrada e da saída. */
 export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: number; e: number } | null => {
   if (!p || p.e === undefined || p.s === undefined || p.s <= p.e) return null;
@@ -134,7 +135,9 @@ export const calcPonto = (p: Ponto | undefined, d: Date, j: Jornada): { h: numbe
   if (fim === null) { const h = Math.max(0, p.s - p.e - almoco(p.s - p.e)) / 60; return { h, e: h }; }
   const e = p.e >= INICIO - TOLERANCIA && p.e <= INICIO ? INICIO : p.e;
   const s = p.s >= fim - TOLERANCIA && p.s <= fim ? fim : p.s;
-  const extra = Math.max(0, Math.min(INICIO, s) - e) + Math.max(0, s - Math.max(fim, e));
+  const extraBruta = Math.max(0, Math.min(INICIO, s) - e) + Math.max(0, s - Math.max(fim, e));
+  // No sábado, a manhã 07–12 fica normal; o almoço do turno longo reduz primeiro as extras.
+  const extra = d.getDay() === 6 ? Math.max(0, extraBruta - almoco(s - e)) : extraBruta;
   const h = Math.max(0, s - e - almoco(s - e));
   return { h: h / 60, e: Math.min(extra, h) / 60 };
 };

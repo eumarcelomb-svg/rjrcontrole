@@ -27,3 +27,4 @@
 - Payroll closing lives on /folha with browser-only paginated attendance loading; flush pending sheet writes before navigation so closing uses saved current records.
 - Keep mobile spreadsheet column visibility behind a per-device persisted view preference (whole week, summary columns) so narrow screens stay readable, with the desktop table unchanged.
 - Keep optional employee payment keys in the employee record, browser/cloud sync and transactional JSON restore; copy the stored key verbatim so payment identifiers are not reformatted.
+- Explicit historical payroll recalculations use the shared attendance summary and saved rates/base, including daily imported corrections; preserve manual adjustments and never recalculate saved PDFs implicitly.
