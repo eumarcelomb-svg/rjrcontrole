@@ -28,3 +28,4 @@
 - Keep mobile spreadsheet column visibility behind a per-device persisted view preference (whole week, summary columns) so narrow screens stay readable, with the desktop table unchanged.
 - Keep optional employee payment keys in the employee record, browser/cloud sync and transactional JSON restore; copy the stored key verbatim so payment identifiers are not reformatted.
 - Explicit historical payroll recalculations use the shared attendance summary and saved rates/base, including daily imported corrections; preserve manual adjustments and never recalculate saved PDFs implicitly.
+- Keep meal control in a browser-only page with versioned, validated per-device daily aggregate records; calculate totals from manual quantities, never from attendance, and keep it separate from attendance backups to avoid altering payroll or personal data.

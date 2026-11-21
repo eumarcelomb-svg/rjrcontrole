@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EpiRouteImport } from './routes/epi'
 import { Route as FolhaRouteImport } from './routes/folha'
+import { Route as RefeicoesRouteImport } from './routes/refeicoes'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const FolhaRoute = FolhaRouteImport.update({
   path: '/folha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RefeicoesRoute = RefeicoesRouteImport.update({
+  id: '/refeicoes',
+  path: '/refeicoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/epi': typeof EpiRoute
   '/folha': typeof FolhaRoute
+  '/refeicoes': typeof RefeicoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/epi': typeof EpiRoute
   '/folha': typeof FolhaRoute
+  '/refeicoes': typeof RefeicoesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/epi': typeof EpiRoute
   '/folha': typeof FolhaRoute
+  '/refeicoes': typeof RefeicoesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/epi' | '/folha'
+  fullPaths: '/' | '/epi' | '/folha' | '/refeicoes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/epi' | '/folha'
-  id: '__root__' | '/' | '/epi' | '/folha'
+  to: '/' | '/epi' | '/folha' | '/refeicoes'
+  id: '__root__' | '/' | '/epi' | '/folha' | '/refeicoes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EpiRoute: typeof EpiRoute
   FolhaRoute: typeof FolhaRoute
+  RefeicoesRoute: typeof RefeicoesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FolhaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/refeicoes': {
+      id: '/refeicoes'
+      path: '/refeicoes'
+      fullPath: '/refeicoes'
+      preLoaderRoute: typeof RefeicoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EpiRoute: EpiRoute,
   FolhaRoute: FolhaRoute,
+  RefeicoesRoute: RefeicoesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
